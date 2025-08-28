@@ -1,5 +1,6 @@
 # Root
-.env
+*.env
+*.env.example
 
 # Node / Frontend
 frontend/node_modules
