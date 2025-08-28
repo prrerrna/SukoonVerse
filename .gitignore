@@ -22,3 +22,20 @@ backend/.env*
 .vscode/
 .idea/
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js
+node_modules/
+
+# VSCode
+.vscode/
+
+# Environment files
+.env
+venv/
+
