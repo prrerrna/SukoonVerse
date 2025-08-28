@@ -1,0 +1,175 @@
+PROJECT: Youth Mental Wellness — GenAI Companion
+------------------------------------------------
+One-liner:
+Anonymous, culturally-sensitive AI wellness buddy for Indian youth that does empathetic chat, mood check-ins, micro-interventions, and crisis escalation — privacy-first by default.
+
+GOAL:
+- Hackathon MVP: empathic chat + mood journaling + micro-interventions + crisis detection + privacy/ephemeral mode.
+- Demo objective: show an emotional arc in 60–90s (anon chat -> coping -> measurable uplift -> safe escalation).
+
+MVP FEATURES:
+1. Anonymous Empathetic Chat (English + Hindi; Hinglish support)
+   - Warm non-judgmental persona (system prompt name: "Sakhi").
+   - No medical diagnoses; always recommend professionals for severe issues.
+2. Mood Check-ins & Journaling
+   - Short text input -> mood label + intensity (0-10) -> 7-day trend sparkline.
+   - Ephemeral mode: default (data not stored).
+3. Micro-interventions
+   - Short exercises: breathing (4-7-8), grounding (5-4-3-2-1), quick reframing, sleep hygiene tip.
+4. Crisis Detection & Escalation
+   - Keyword + conservative classifier trigger -> immediate Crisis UI: grounding steps + helpline tel: link + option to connect to human (consent required).
+   - Log only hashed flags + timestamp, raw content NOT stored unless explicit opt-in.
+5. Privacy-first Controls
+   - Anonymous sessions (UUID in sessionStorage) by default.
+   - Client-side PII redaction before sending text to backend.
+   - Opt-in encrypted history only if user consents.
+
+NICE-TO-HAVE (if time permits):
+- Voice input & TTS (Web Speech API)
+- On-device encrypted journals (IndexedDB + AES)
+- Peer-support read-only feed / moderated rooms
+- Clinician mock dashboard to view hashed flags
+
+TECH STACK (recommended):
+- Frontend: React + TypeScript + Vite, Tailwind CSS, Headless UI, React Query, Zustand (or Context)
+- Charts: Chart.js or Recharts
+- Backend: Flask (Python) + Gunicorn (prod), Docker optional
+- LLM Dev: CodeLlama-7B-Instruct (local LM Studio)
+- LLM Prod: Google Gemini via Vertex AI (REST) if available
+- Storage: Default client-side IndexedDB (ephemeral); opt-in server store = encrypted SQLite/Firestore
+- Deploy: Frontend -> Vercel; Backend -> Render / Railway / Cloud Run
+- Monitoring: Sentry (errors only, no message bodies); Analytics = Plausible / PostHog (PII-free)
+
+ARCHITECTURE & FLOW:
+User (browser) -> Client-side prefilter/PII redact -> POST /api/chat -> Backend safety prefilter -> prepare system prompt + context -> call LLM (local or Gemini) -> postprocess (tone adjust, attach resources, redact) -> response to client -> client stores mood snapshot in IndexedDB if not ephemeral.
+
+API SPEC (JSON examples)
+1) POST /api/chat
+   Request: { "session_id": "uuid", "message": "text", "lang_hint": "hi/en" }
+   Response: { "reply": "text", "mood": {"label":"anxious","score":6}, "is_crisis": false, "suggested_intervention": "breathing_60s" }
+
+2) POST /api/mood
+   Request: { "session_id": "uuid", "message": "text" }
+   Response: { "label":"sad", "score":4 }
+
+3) GET /api/resources?region=state
+   Response: [{ "name":"College Counselling", "contact":"tel:1800...", "type":"helpline", "cost":"low" }, ...]
+
+4) POST /api/flag
+   Request: { "session_id": "uuid", "flag_type":"crisis", "hashed_context":"sha256..." }
+   Response: { "ok": true }
+
+PRIVACY & SAFETY RULES
+- Default: anonymous + ephemeral.
+- Client-side redaction of phone/email/address before sending text.
+- Only hashed flags and non-identifiable metrics stored server-side.
+- Crisis flow: immediate UI + tel: helpline + ask to connect to trained volunteer (consent required).
+- Disclaimers: visible everywhere: "Not a clinician — For emergencies call your local helpline."
+
+CRISIS HEURISTICS (conservative)
+- English keywords: "suicide", "kill myself", "end my life", "hurt myself", "cut myself", "die", "want to die", "I can't go on", "I will kill myself"
+- Hinglish/Hindi keywords: "marna", "zindagi khatam", "apni jaan", "khud ko nuksan", "mar jaaun", "jeena nahi"
+- If any keyword matches: immediately return Crisis UI (skip normal chat)
+- Keep list small and conservative to avoid false positives; use classifier later to reduce false negatives.
+
+SYSTEM PROMPT (core)
+You are "Sakhi", an empathetic, culturally-aware mental wellness companion for Indian youth. Use a warm, non-judgmental tone. Keep replies short and actionable. Do not provide medical diagnoses. If the user expresses self-harm or imminent danger, follow crisis protocol: validate feelings, guide a 60-second grounding exercise, display local helpline and ask permission to connect to a trained human. Support English, Hindi and Hinglish mixing. Use simple language; avoid clinical terms.
+
+FEW-SHOT EXAMPLES (brief)
+1) Input: "Aaj bahut anxious hoon, exams pass nahi hoon toh dar lagta"  
+   Output: Reflective empathy, short breathing exercise, 3 practical steps to start study schedule.
+
+2) Input: "Mann karta sab kuch chhod do"  
+   Output: Validate, reflect intensity, provide grounding 5-4-3-2-1, helpline if suicidal.
+
+3) Input: "I can't sleep and keep thinking about failure"  
+   Output: Sleep wind-down routine + 1 quick journaling prompt + normalizing line.
+
+4) Input: "Kaise bataun maa ko ke mai help chahiye"  
+   Output: Stigma-aware script: small steps to approach parents + phone script sample.
+
+5) Input: "I want to hurt myself"  
+   Output: Immediate crisis protocol: grounding + helpline + ask to connect to volunteer.
+
+6) Input: "Just stressed about assignment"  
+   Output: Empathy + 3 actionable time-boxed steps + micro timers suggestion.
+
+ACCEPTANCE CRITERIA (MVP)
+- Chat responses <= 2.5s latency (demo feel).
+- Mood labeling accuracy >= 80% on 20 sample inputs.
+- Crisis phrases trigger crisis UI 100% in test set.
+- Ephemeral mode leaves no persisted entries after session.
+- Micro-interventions are actionable and time-boxed (<2 mins).
+
+UI/UX NOTES
+- Soothing color palette (pastel blue/green), rounded cards, large readable fonts.
+- Onboarding: 3 screens: What it does, Privacy-first, Language choice.
+- Chat bubbles, mood chips, breathing animation, 7-day trend sparkline.
+- Accessibility: ARIA labels, keyboard nav, large buttons.
+
+DEMO SCRIPT (90 seconds)
+1) 0-10s: Show onboarding + privacy toggle (Anonymous = ON)
+2) 10-30s: User types in Hindi: "Assignments bahut hain, anxiety ho rahi" -> response: empathy + 60s breathing
+3) 30-50s: Show mood logged and 7-day trend updated
+4) 50-75s: Simulate crisis input: "I want to kill myself" -> Crisis UI pops with immediate grounding + helpline call button
+5) 75-90s: Show privacy badge + metrics slide (no raw logs saved)
+
+FOLDER SCAFFOLD (suggestion)
+frontend/
+  src/
+    pages/Onboard.tsx
+    pages/Chat.tsx
+    pages/Mood.tsx
+    pages/Resources.tsx
+    components/ChatBubble.tsx
+    components/BreathTimer.tsx
+    components/TrendChart.tsx
+    lib/api.ts
+    hooks/useSession.ts
+backend/
+  app/
+    routes/chat.py
+    routes/mood.py
+    routes/resources.py
+    routes/flag.py
+    llm/client_local.py
+    llm/client_gemini.py
+    safety/prefilter.py
+    utils/encryption.py
+Dockerfile
+README.md
+
+DEPLOYMENT (quick path)
+- Frontend -> Vercel (connect GitHub)
+- Backend -> Render / Railway (Docker optional)
+- Dev: use local LM (LM Studio); set BACKEND_LLM=local
+- Prod: set BACKEND_LLM=gemini and add Vertex API keys in Render secrets
+- Use Sentry for error monitoring (do NOT log chat text)
+
+3-DAY SPRINT PLAN
+Day 1:
+  - Scaffold frontend (React + Tailwind) and create Chat UI
+  - Scaffold Flask backend with /api/chat stub
+Day 2:
+  - Integrate local CodeLlama, implement crisis prefilter, mood extraction, store mood snapshots in IndexedDB
+Day 3:
+  - Polish UI, add Hindi strings, implement Crisis UI + tel: helplines, prepare 90s demo and 6-slide pitch deck
+
+JUDGES WINNING HACKS
+- Show emotional arc (before/after uplift metric)
+- Demonstrate Hindi/Hinglish language support live
+- Show privacy slide: what is NOT stored (no raw transcripts)
+- Include small safety evaluation: confusion matrix on test phrases
+- Keep UI polished & accessible
+
+NEXT ACTIONS FOR COPILOT (to scaffold repo)
+1) Create frontend scaffold (Vite + React + TypeScript + Tailwind)
+2) Create Chat page with basic send/receive UI
+3) Create Breathing timer component & TrendChart skeleton
+4) Create Flask app skeleton with chat and mood endpoints
+5) Create simple local LLM client stub that returns canned empathetic responses
+6) Add safety prefilter module with keywords list
+7) Add IndexedDB-based ephemeral journal util
+8) Add README with setup & run commands (local dev vs prod notes)
+
+END OF TXT
