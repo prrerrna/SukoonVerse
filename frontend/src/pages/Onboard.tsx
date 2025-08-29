@@ -232,6 +232,7 @@ const Onboard = () => {
               <div className="text-teal-200 text-sm">
                 <p>© {new Date().getFullYear()} SukoonVerse. All rights reserved.</p>
                 <p>A safe space for youth mental wellness powered by generative AI.</p>
+                <p>Made with ❤️ by team SukoonVerse</p>
               </div>
             </div>
           </div>
