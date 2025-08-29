@@ -1,5 +1,5 @@
 // Chat.tsx: The main chat interface component where users interact with the AI.
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useSession from '../hooks/useSession';
 import { sendMessage } from '../lib/api';
 import ChatBubble from '../components/ChatBubble';
@@ -9,24 +9,44 @@ import BreathTimer from '../components/BreathTimer';
 // All state and logic are managed inline using React hooks.
 const Chat = () => {
   const { sessionId } = useSession();
-  const [messages, setMessages] = useState<{ author: 'user' | 'bot'; text: string }[]>([]);
+  const [messages, setMessages] = useState<{ id: string; author: 'user' | 'bot'; text: string; floating?: boolean }[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // auto-scroll to bottom when messages change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [messages.length]);
+
+  // helper to clear floating flag after animation
+  const clearFloating = (id: string) => {
+    setTimeout(() => {
+      setMessages(prev => prev.map(m => (m.id === id ? { ...m, floating: false } : m)));
+    }, 650); // slightly longer than animation
+  };
 
   // Inline arrow function for handling form submission.
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || !sessionId) return;
 
-    const userMessage = { author: 'user' as const, text: inputValue };
+    const userId = `u_${Date.now()}`;
+    const userMessage = { id: userId, author: 'user' as const, text: inputValue, floating: true };
     setMessages(prev => [...prev, userMessage]);
+    clearFloating(userId);
+    const textToSend = inputValue;
     setInputValue('');
 
     try {
-      const response = await sendMessage({ session_id: sessionId, message: inputValue, lang_hint: 'en' });
-      const botMessage = { author: 'bot' as const, text: response.reply };
+      const response = await sendMessage({ session_id: sessionId, message: textToSend, lang_hint: 'en' });
+      const botId = `b_${Date.now()}`;
+      const botMessage = { id: botId, author: 'bot' as const, text: response.reply, floating: true };
       setMessages(prev => [...prev, botMessage]);
-      
+      clearFloating(botId);
+
       if (response.is_crisis) {
         setIsCrisis(true);
       } else {
@@ -34,8 +54,10 @@ const Chat = () => {
       }
       // Here you would also handle mood updates and suggested interventions
     } catch (error) {
-      const errorMessage = { author: 'bot' as const, text: 'Sorry, something went wrong.' };
+      const errId = `e_${Date.now()}`;
+      const errorMessage = { id: errId, author: 'bot' as const, text: 'Sorry, something went wrong.', floating: true };
       setMessages(prev => [...prev, errorMessage]);
+      clearFloating(errId);
     }
   };
 
@@ -53,11 +75,31 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-screen p-4">
-      <div className="flex-1 overflow-y-auto mb-4">
-        {messages.map((msg, index) => (
-          <ChatBubble key={index} author={msg.author} text={msg.text} />
+      {/* inject small keyframes for floating animation */}
+      <style>{`
+        @keyframes floatUp {
+          0% { transform: translateY(12px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        .floating {
+          animation: floatUp 600ms cubic-bezier(.22,.9,.36,1) forwards;
+        }
+      `}</style>
+
+      <div ref={containerRef} className="flex-1 overflow-y-auto mb-4 space-y-2">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={msg.floating ? 'floating' : undefined}
+            // ensure the animation doesn't block layout or interaction
+            style={{ willChange: 'transform, opacity' }}
+          >
+            <ChatBubble author={msg.author} text={msg.text} />
+          </div>
         ))}
+        <div ref={bottomRef} />
       </div>
+
       <form onSubmit={handleSend} className="flex">
         <input
           type="text"

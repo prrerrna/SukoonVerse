@@ -3,3 +3,7 @@ Flask
 Flask-Cors
 python-dotenv
 gunicorn
+requests
+google-generativeai
+python-dotenv
+
