@@ -4,6 +4,7 @@ import useSession from '../hooks/useSession';
 import { sendMessage } from '../lib/api';
 import ChatBubble from '../components/ChatBubble';
 import BreathTimer from '../components/BreathTimer';
+import { addSnapshot } from '../utils/indexeddb';
 
 // This component handles the main chat functionality.
 // All state and logic are managed inline using React hooks.
@@ -52,7 +53,20 @@ const Chat = () => {
       } else {
         setIsCrisis(false);
       }
-      // Here you would also handle mood updates and suggested interventions
+      
+      // Save mood from chatbot response to update trend chart (silent)
+      if (response.mood && typeof response.mood === 'object') {
+        const moodData = {
+          label: response.mood.label || 'neutral',
+          score: response.mood.score || 5,
+          journal: undefined, // do not include raw chat in journal for privacy
+          source: 'chat' as const // Explicitly set source to chat
+        };
+        
+        // Add to IndexedDB to update the mood trend chart
+        await addSnapshot(moodData);
+        // No user-facing announcement in chat
+      }
     } catch (error) {
       const errId = `e_${Date.now()}`;
       const errorMessage = { id: errId, author: 'bot' as const, text: 'Sorry, something went wrong.', floating: true };
@@ -74,7 +88,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen p-4">
+  <div className="flex flex-col h-screen p-4">
       {/* inject small keyframes for floating animation */}
       <style>{`
         @keyframes floatUp {

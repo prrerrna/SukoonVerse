@@ -19,7 +19,7 @@ def chat():
         # Immediately return crisis response without calling LLM
         return jsonify({
             "reply": "It sounds like you are going through a lot right now. It's important to talk to someone who can help. Here is a resource for you.",
-            "mood": {"label": "distressed", "score": 10},
+            "mood": {"label": "distressed", "score": 2},
             "is_crisis": True,
             "suggested_intervention": "crisis_protocol",
             "resources": [{"title": "Emergency Helpline", "contact": "tel:9152987821", "type": "helpline"}]
@@ -48,7 +48,12 @@ def chat():
         
         # Save the updated history back to the session
         session['chat_history'] = chat_history
-
+        
+        # Log detected mood for analytics and debugging
+        if 'mood' in llm_response and isinstance(llm_response['mood'], dict):
+            mood_info = llm_response['mood']
+            current_app.logger.info(f"Mood detected: {mood_info.get('label')} ({mood_info.get('score')})")
+        
         return jsonify(llm_response)
 
     except Exception as e:

@@ -1,6 +1,8 @@
 # app.py: Main Flask application entry point.
 import os
-from flask import Flask
+from datetime import timedelta
+from uuid import uuid4
+from flask import Flask, session
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -19,9 +21,19 @@ app = Flask(__name__)
 # Set a secret key for session management. In a production environment,
 # this should be a long, random, and securely stored value.
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-for-testing')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_PERMANENT'] = True
 
 # In a real app, you'd want to restrict this more carefully
 CORS(app, supports_credentials=True) 
+
+# Generate a single server-run session id that lasts until the backend restarts
+SERVER_RUN_SESSION_ID = os.environ.get('SERVER_RUN_SESSION_ID') or str(uuid4())
+
+@app.before_request
+def make_session_permanent():
+    # Ensure Flask session cookie persists per configured lifetime
+    session.permanent = True
 
 # Register Blueprints
 app.register_blueprint(chat_bp, url_prefix='/api')
@@ -32,6 +44,11 @@ app.register_blueprint(flag_bp, url_prefix='/api')
 @app.route('/')
 def index():
     return "Welcome to the Sakhi GenAI Backend!"
+
+@app.route('/api/session', methods=['GET'])
+def get_session_id():
+    # Expose a stable id for this server run (useful for front-end testing)
+    return {"session_id": SERVER_RUN_SESSION_ID}
 
 if __name__ == '__main__':
     # The app runs on port 5000 by default

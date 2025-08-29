@@ -132,6 +132,8 @@ npm run dev
 ## Production Notes
 
 - **LLM Client**: The backend is configured to use a local stub by default (`BACKEND_LLM=local`). For production, switch to the Gemini client by setting the environment variable `BACKEND_LLM=gemini` and providing the necessary `GEMINI_API_KEY`.
+- **Mood Scale Guardrail (optional)**: Set `SAKHI_MOOD_NORMALIZE=true` to enforce strict mapping between mood label and score server-side (e.g., "sad" → score ≤ 4, "happy" → score ≥ 8). Default is off to keep outputs purely AI-driven.
+- **Session**: The backend issues a stable session id per server run at `/api/session` and sets a 7‑day cookie. The frontend includes credentials on API calls to preserve chat history.
 - **Database**: The default mode is ephemeral, using client-side IndexedDB. To enable persistent storage, the backend database connection needs to be configured (e.g., to Firestore or an encrypted SQLite database) and the frontend `api.ts` needs to be updated to handle user consent for persistence.
 - **Security**: Ensure all production environment variables (API keys, secret keys) are stored securely and not hardcoded.
 - **CORS**: The development Flask server allows all origins. For production, tighten the `CORS` configuration in `app.py` to only allow your frontend's domain.
