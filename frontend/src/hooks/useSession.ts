@@ -1,4 +1,5 @@
 // useSession.ts: A custom hook for managing the anonymous user session.
+
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 

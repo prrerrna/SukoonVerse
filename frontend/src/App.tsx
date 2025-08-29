@@ -4,6 +4,7 @@ import Onboard from './pages/Onboard';
 import Chat from './pages/Chat';
 import Mood from './pages/Mood';
 import Resources from './pages/Resources';
+import Notes from './pages/Notes';
 
 // This is the root App component.
 // It uses React Router to define the different pages of the application.
@@ -15,6 +16,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Onboard />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/mood" element={<Mood />} />
           <Route path="/resources" element={<Resources />} />
         </Routes>
