@@ -1,6 +1,7 @@
 // indexeddb.ts: A utility for interacting with IndexedDB for ephemeral client-side storage.
 import { openDB, DBSchema } from 'idb';
 
+
 // This file provides a simple interface for storing and retrieving mood data
 // from the browser's IndexedDB. This storage is ephemeral and client-side only by default.
 
