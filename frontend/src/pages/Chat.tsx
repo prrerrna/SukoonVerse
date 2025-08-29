@@ -13,6 +13,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<{ id: string; author: 'user' | 'bot'; text: string; floating?: boolean }[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
+  const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error } = useSpeechRecognition();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -21,6 +22,13 @@ const Chat = () => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages.length]);
+  
+  // Update input value when speech recognition provides a transcript
+  useEffect(() => {
+    if (transcript) {
+      setInputValue(transcript);
+    }
+  }, [transcript]);
 
   // helper to clear floating flag after animation
   const clearFloating = (id: string) => {
@@ -77,12 +85,27 @@ const Chat = () => {
 
   if (isCrisis) {
     return (
-      <div className="p-4 text-center">
-        <h2 className="text-2xl font-bold text-red-600">Crisis Detected</h2>
-        <p className="my-4">It's important to get help right away. Please use a resource below.</p>
-        <a href="tel:988" className="block bg-red-500 text-white p-3 rounded-lg mb-4">Call 988 (National Helpline)</a>
-        <BreathTimer />
-        <button onClick={() => setIsCrisis(false)} className="mt-4 text-sm text-gray-600">Return to chat</button>
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h2 className="text-xl font-bold mb-4 text-red-600">Need immediate help?</h2>
+          <p className="mb-4">
+            If you're experiencing a mental health crisis or emergency, please reach out to one of these resources immediately:
+          </p>
+          <ul className="list-disc pl-5 mb-4">
+            <li className="mb-2">National Suicide Prevention Lifeline: <a href="tel:988" className="text-blue-600 underline">988</a></li>
+            <li className="mb-2">Crisis Text Line: Text HOME to <a href="sms:741741" className="text-blue-600 underline">741741</a></li>
+            <li>Emergency Services: <a href="tel:911" className="text-blue-600 underline">911</a></li>
+          </ul>
+          <BreathTimer />
+          <div className="flex justify-end">
+            <button 
+              onClick={() => setIsCrisis(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              I understand
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -114,17 +137,38 @@ const Chat = () => {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          className="flex-1 p-2 border rounded-l-lg"
-          placeholder="Type your message..."
-        />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded-r-lg">Send</button>
+      <form onSubmit={handleSend} className="flex items-center justify-center">
+        <div className="flex items-center w-full max-w-2xl mx-auto bg-white rounded-full shadow-md overflow-hidden border border-teal-100">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex-1 p-3 outline-none text-gray-700"
+            placeholder="Type your message..."
+          />
+          {hasRecognitionSupport && (
+            <button 
+              type="button" 
+              onClick={isListening ? stopListening : startListening}
+              className={`p-3 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-teal-600 hover:text-teal-800'}`}
+              aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" x2="12" y1="19" y2="22"></line>
+              </svg>
+            </button>
+          )}
+          <button type="submit" className="p-3 text-teal-600 hover:text-teal-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5"></path>
+              <path d="m5 12 7-7 7 7"></path>
+            </svg>
+          </button>
+        </div>
       </form>
-      <div className="text-center text-xs text-gray-600 mt-2">
+      <div className="text-center text-xs text-gray-700 mt-2 bg-white/80 p-2 rounded-lg max-w-2xl mx-auto">
         Disclaimer: Not a clinician. For emergencies call your local helpline.
       </div>
     </div>
