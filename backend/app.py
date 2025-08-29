@@ -16,8 +16,12 @@ from app.routes.flag import flag_bp
 # Flask app initialization
 app = Flask(__name__)
 
+# Set a secret key for session management. In a production environment,
+# this should be a long, random, and securely stored value.
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-for-testing')
+
 # In a real app, you'd want to restrict this more carefully
-CORS(app) 
+CORS(app, supports_credentials=True) 
 
 # Register Blueprints
 app.register_blueprint(chat_bp, url_prefix='/api')
