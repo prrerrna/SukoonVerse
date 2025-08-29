@@ -2,6 +2,10 @@
 import os
 from flask import Flask
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import routes (Blueprints)
 from app.routes.chat import chat_bp
