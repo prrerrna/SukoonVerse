@@ -1,5 +1,5 @@
 // TrendChart.tsx: A component for displaying a 7-day mood trend chart.
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 
 // Define the type for the data points for type safety.
 type ChartData = {
@@ -81,10 +81,12 @@ const TrendChart = ({ data }: { data: ChartData[] }) => {
       >
         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis dataKey="day" />
-        <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} />
+        <YAxis domain={[1, 10]} ticks={[1, 3, 5, 7, 9]} allowDecimals={false} />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
+        <ReferenceArea y1={1} y2={4} fill="#f3f4f6" opacity={0.6} />
         <ReferenceLine y={5} stroke="#666" strokeDasharray="3 3" label={{ value: 'Neutral', position: 'left' }} />
+        <ReferenceArea y1={8} y2={10} fill="#ecfdf5" opacity={0.7} />
         <Line 
           type="monotone" 
           dataKey="score" 

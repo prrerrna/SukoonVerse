@@ -4,6 +4,10 @@
 @tailwind utilities;
 
 /* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 @keyframes crush {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.8) rotate(10deg); opacity: 0.8; }
@@ -29,6 +33,10 @@
   animation: pulse-chat 2s infinite;
 }
 
+.animate-fade-in {
+  animation: fadeIn 300ms ease both;
+}
+
 .confetti-container {
   position: absolute;
   width: 100%;
@@ -40,4 +48,12 @@
   position: absolute;
   top: -20px;
   border-radius: 50%;
+}
+
+/* Global smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Slightly modernized color defaults */
+:root {
+  --card-shadow: 0 10px 30px rgba(0,0,0,0.06);
 }

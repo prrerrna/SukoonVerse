@@ -13,7 +13,6 @@ const Chat = () => {
   const [messages, setMessages] = useState<{ id: string; author: 'user' | 'bot'; text: string; floating?: boolean }[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
-  const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, error } = useSpeechRecognition();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -23,12 +22,6 @@ const Chat = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages.length]);
   
-  // Update input value when speech recognition provides a transcript
-  useEffect(() => {
-    if (transcript) {
-      setInputValue(transcript);
-    }
-  }, [transcript]);
 
   // helper to clear floating flag after animation
   const clearFloating = (id: string) => {
@@ -146,20 +139,6 @@ const Chat = () => {
             className="flex-1 p-3 outline-none text-gray-700"
             placeholder="Type your message..."
           />
-          {hasRecognitionSupport && (
-            <button 
-              type="button" 
-              onClick={isListening ? stopListening : startListening}
-              className={`p-3 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-teal-600 hover:text-teal-800'}`}
-              aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" x2="12" y1="19" y2="22"></line>
-              </svg>
-            </button>
-          )}
           <button type="submit" className="p-3 text-teal-600 hover:text-teal-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 19V5"></path>
