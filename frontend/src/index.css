@@ -25,6 +25,12 @@
   100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
 }
 
+@keyframes floatArrow {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
 .animate-crush {
   animation: crush 1s forwards;
 }
@@ -35,6 +41,11 @@
 
 .animate-fade-in {
   animation: fadeIn 300ms ease both;
+}
+
+.animate-float-arrow {
+  display: inline-block;
+  animation: floatArrow 1.2s infinite ease-in-out;
 }
 
 .confetti-container {
@@ -56,4 +67,38 @@ html { scroll-behavior: smooth; }
 /* Slightly modernized color defaults */
 :root {
   --card-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+body {
+  background: #e8ecd7;
+  color: #263a1e;
+}
+
+.main-bg {
+  background: #e8ecd7;
+}
+
+.card-bg {
+  background: #f0f2e6;
+}
+
+.text-main {
+  color: #263a1e;
+}
+
+.text-subtle {
+  color: #7a9562;
+}
+
+.accent-bg {
+  background: linear-gradient(90deg, #263a1e 0%, #a3c167 100%);
+}
+
+.border-main {
+  border-color: #dbe5c2;
+}
+
+.button-main {
+  background: #a3c167;
+  color: #263a1e;
 }
