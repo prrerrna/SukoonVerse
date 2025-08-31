@@ -48,8 +48,12 @@ const Onboard = () => {
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-teal-50 to-blue-50">
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full ${isOpen ? "w-64" : "w-20"} 
-        bg-teal-700 text-white flex flex-col justify-between transition-all duration-300 z-10`}
+        className={`fixed left-0 top-0 h-full bg-teal-700 text-white flex flex-col justify-between z-10`}
+        style={{
+          width: isOpen ? '16rem' : '5rem',
+          transition: 'width 400ms cubic-bezier(.22,.9,.36,1)',
+          willChange: 'width',
+        }}
       >
         {/* Top Section */}
         <div>
@@ -69,19 +73,51 @@ const Onboard = () => {
           <nav className="mt-6 flex flex-col gap-4">
             <Link to="/" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
               <Home size={22} />
-              {isOpen && <span>Home</span>}
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Home</span>
             </Link>
             <Link to="/chat" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
               <MessageCircle size={22} />
-              {isOpen && <span>Let's Talk</span>}
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Let's Talk</span>
             </Link>
             <Link to="/mood" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
               <Zap size={22} />
-              {isOpen && <span>Mood</span>}
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Mood</span>
             </Link>
             <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
               <BookOpen size={22} />
-              {isOpen && <span>Tell me</span>}
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Tell me</span>
             </Link>
           </nav>
         </div>
@@ -90,17 +126,40 @@ const Onboard = () => {
         <div className="flex flex-col gap-4 p-4">
           <Link to="/" className="flex items-center gap-3 hover:bg-teal-600 py-2 px-4 rounded-md">
             <User size={22} />
-            {isOpen && <span>Profile</span>}
+            <span
+              style={{
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                transition: 'opacity 300ms, transform 300ms',
+                display: 'inline-block',
+                width: isOpen ? 'auto' : 0,
+              }}
+            >Profile</span>
           </Link>
           <Link to="/" className="flex items-center gap-3 hover:bg-teal-600 py-2 px-4 rounded-md">
             <Settings size={22} />
-            {isOpen && <span>Settings</span>}
+            <span
+              style={{
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                transition: 'opacity 300ms, transform 300ms',
+                display: 'inline-block',
+                width: isOpen ? 'auto' : 0,
+              }}
+            >Settings</span>
           </Link>
         </div>
       </div>
 
       {/* Main Content with left margin to accommodate sidebar */}
-      <div className={`${isOpen ? "ml-64" : "ml-20"} transition-all duration-300 flex-1`}>
+      <div
+        className={`flex-1`}
+        style={{
+          marginLeft: isOpen ? '16rem' : '5rem',
+          transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)',
+          willChange: 'margin-left',
+        }}
+      >
         {/* Hero Section */}
         <section className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative">
           <div className="max-w-4xl mx-auto text-center">
@@ -183,6 +242,17 @@ const Onboard = () => {
                   <span>Try it now</span>
                   <ChevronRight size={18} className="ml-1" />
                 </Link>
+              </div>
+              <div className="col-span-1 md:col-span-3 flex items-center justify-center my-2">
+                <div className="flex flex-row items-center bg-gradient-to-r from-teal-100 via-white to-blue-100 rounded-xl shadow border border-teal-200 px-8 py-6 w-full max-w-4xl mx-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-teal-600 mr-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8a2 2 0 012-2h2m2-4h6a2 2 0 012 2v2a2 2 0 01-2 2H9a2 2 0 01-2-2V6a2 2 0 012-2z" /></svg>
+                  <div className="flex flex-col text-left">
+                    <p className="text-xl md:text-2xl text-teal-800 font-medium leading-relaxed">
+                      "Mental health struggles are real, but so is recovery. We're here to walk alongside you on your journey toward wellness, one step at a time."
+                    </p>
+                    <p className="text-sm text-teal-600 mt-2 font-semibold">— The SukoonVerse Team</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
