@@ -94,8 +94,9 @@ const Onboard = () => {
             </Link>
             <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
               <BookOpen size={22} className="text-white" />
+            </Link>
             <Link to="/pulse" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <Users size={22} />
+              <User size={22} />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -244,7 +245,7 @@ const Onboard = () => {
               <div className="bg-gradient-to-br from-teal-50 to-blue-50 p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-teal-100 md:col-span-3">
                 <div className="flex items-center gap-4">
                   <div className="bg-teal-600 text-white p-3 rounded-full w-14 h-14 flex items-center justify-center">
-                    <Users size={28} />
+                    <User size={28} />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-2xl font-semibold mb-1 text-teal-800">Sukoon Pulse</h3>
