@@ -15,22 +15,22 @@ def get_resources():
     # Stubbed data based on project brief
     resources_data = [
         {
-            "name": "National Suicide Prevention Lifeline",
-            "contact": "tel:988",
+            "name": "KIRAN National Mental Health Helpline (India)",
+            "contact": "tel:18005990019",
             "type": "helpline",
             "cost": "free"
         },
         {
-            "name": "Crisis Text Line",
-            "contact": "sms:741741",
-            "type": "textline",
-            "cost": "free"
-        },
-        {
-            "name": "College Counselling Center (Example)",
-            "contact": "tel:1800-123-4567",
+            "name": "iCALL (TISS) Counselling Helpline",
+            "contact": "tel:9152987821",
             "type": "helpline",
             "cost": "low"
+        },
+        {
+            "name": "Emergency Services (India)",
+            "contact": "tel:112",
+            "type": "emergency",
+            "cost": "free"
         }
     ]
 

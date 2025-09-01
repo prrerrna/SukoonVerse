@@ -1,5 +1,7 @@
 // Mood.tsx: A page for displaying mood history and trends.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import useSession from '../hooks/useSession';
+import { reportPulse } from '../lib/api';
 import TrendChart from '../components/TrendChart';
 import MoodPicker from '../components/MoodPicker';
 import JournalEntry from '../components/JournalEntry';
@@ -28,6 +30,7 @@ const weekdayShort = (d: Date) => d.toLocaleDateString(undefined, { weekday: 'sh
 const formatISO = (d: Date) => d.toISOString().slice(0, 10);
 
 const Mood = () => {
+  const { sessionId } = useSession();
   const [data, setData] = useState<DayPoint[]>([]);
   const [recent, setRecent] = useState<MoodSnapshot[]>([]);
   const [selected, setSelected] = useState<{ label: string; score: number }>({ label: 'neutral', score: 5 });
@@ -36,6 +39,20 @@ const Mood = () => {
   const [useServerData, setUseServerData] = useState<boolean>(false);
   const [loadingServer, setLoadingServer] = useState<boolean>(false);
   const [showBreath, setShowBreath] = useState<boolean>(false);
+
+  // Pulse opt-in and theme selection
+  const [pulseOptIn, setPulseOptIn] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('pulseOptIn') === 'true';
+  });
+  const [region, setRegion] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'MyCampus';
+    return window.localStorage.getItem('pulseRegion') || 'MyCampus';
+  });
+  const ALLOWED_THEMES = [
+    'exam','sleep','family','peer pressure','loneliness','friends','relationships','stress','social','money','health','career'
+  ];
+  const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
 
   const [todayAvg, setTodayAvg] = useState<number | null>(null);
   const [weeklyAvg, setWeeklyAvg] = useState<number | null>(null);
@@ -227,6 +244,20 @@ const Mood = () => {
       journal: journal.trim() ? journal : undefined,
       source: 'manual'
     });
+    // Report to Pulse if opted in (no raw text, only score + themes)
+    try {
+      if (pulseOptIn && sessionId) {
+        await reportPulse({
+          session_id: sessionId,
+          region: region || 'MyCampus',
+          mood_score: selected.score,
+          themes: selectedThemes,
+        });
+      }
+    } catch (e) {
+      // Non-blocking; ignore errors in UI
+      console.warn('Pulse report failed', e);
+    }
     await load();
   };
 
@@ -423,6 +454,57 @@ const Mood = () => {
               <span>5</span>
               <span>10</span>
             </div>
+          </div>
+          {/* Pulse opt-in */}
+          <div className="mt-4 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">Contribute to Sukoon Pulse (anonymous)</label>
+              <input
+                type="checkbox"
+                checked={pulseOptIn}
+                onChange={(e)=>{
+                  const v = e.target.checked;
+                  setPulseOptIn(v);
+                  if (typeof window !== 'undefined') window.localStorage.setItem('pulseOptIn', v ? 'true' : 'false');
+                }}
+                className="h-4 w-4"
+              />
+            </div>
+            {pulseOptIn && (
+              <div className="mt-3">
+                <label className="text-xs text-gray-600">Region</label>
+                <input
+                  value={region}
+                  onChange={(e)=>{
+                    setRegion(e.target.value);
+                    if (typeof window !== 'undefined') window.localStorage.setItem('pulseRegion', e.target.value);
+                  }}
+                  className="mt-1 w-full border rounded px-3 py-2 text-sm"
+                  placeholder="MyCampus"
+                />
+                <div className="mt-3 text-xs text-gray-600">Pick up to 3 themes:</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {ALLOWED_THEMES.map(t => {
+                    const on = selectedThemes.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={()=>{
+                          setSelectedThemes(prev => {
+                            const has = prev.includes(t);
+                            if (has) return prev.filter(x => x !== t);
+                            if (prev.length >= 3) return prev; // max 3
+                            return [...prev, t];
+                          });
+                        }}
+                        className={`px-2 py-1 rounded-full text-xs border ${on ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                      >{t}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-3">
             <JournalEntry onSave={handleSave} />

@@ -107,7 +107,19 @@ const Onboard = () => {
                 }}
               >Mood</span>
             </Link>
-            <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
+            <Link to="/pulse" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
+              <Users size={22} />
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Pulse</span>
+            </Link>
+            <Link to="/notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
               <BookOpen size={22} />
               <span
                 style={{
@@ -242,6 +254,22 @@ const Onboard = () => {
                   <span>Try it now</span>
                   <ChevronRight size={18} className="ml-1" />
                 </Link>
+              </div>
+
+              <div className="bg-gradient-to-br from-teal-50 to-blue-50 p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-teal-100 md:col-span-3">
+                <div className="flex items-center gap-4">
+                  <div className="bg-teal-600 text-white p-3 rounded-full w-14 h-14 flex items-center justify-center">
+                    <Users size={28} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-semibold mb-1 text-teal-800">Sukoon Pulse</h3>
+                    <p className="text-gray-700 mb-2">See your community's anonymous mood pulse and get AI-powered care actions everyone can try together.</p>
+                    <Link to="/pulse" className="text-teal-600 font-medium hover:text-teal-800 inline-flex items-center">
+                      <span>Open Pulse</span>
+                      <ChevronRight size={18} className="ml-1" />
+                    </Link>
+                  </div>
+                </div>
               </div>
               <div className="col-span-1 md:col-span-3 flex items-center justify-center my-2">
                 <div className="flex flex-row items-center bg-gradient-to-r from-teal-100 via-white to-blue-100 rounded-xl shadow border border-teal-200 px-8 py-6 w-full max-w-4xl mx-auto">
