@@ -119,7 +119,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-teal-50 to-blue-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Calming Music Audio Element */}
       <audio
         ref={audioRef}
@@ -134,7 +134,7 @@ const Chat = () => {
 
       {/* Sidebar Navigation (copied from Onboard) */}
       <div
-        className={`fixed left-0 top-0 h-full bg-teal-700 text-white flex flex-col justify-between z-10`}
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-accentDark to-accent text-white flex flex-col justify-between z-10`}
         style={{
           width: isOpen ? '16rem' : '5rem',
           transition: 'width 400ms cubic-bezier(.22,.9,.36,1)',
@@ -144,13 +144,13 @@ const Chat = () => {
         <div>
           <div className="flex items-center justify-between p-4">
             <img src="/logo.png" alt="SukoonVerse" className="h-10 w-10 rounded-full" />
-            <button onClick={() => setIsOpen(!isOpen)} className="hover:bg-teal-600 p-1 rounded-full">
-              {isOpen ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
+            <button onClick={() => setIsOpen(!isOpen)} className="hover:bg-accentDark/80 p-1 rounded-full">
+              {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
             </button>
           </div>
           <nav className="mt-6 flex flex-col gap-4">
-            <Link to="/" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <Home size={22} />
+            <Link to="/" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
+              <Home size={22} className="text-white" />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -161,8 +161,8 @@ const Chat = () => {
                 }}
               >Home</span>
             </Link>
-            <Link to="/chat" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <MessageCircle size={22} />
+            <Link to="/chat" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
+              <MessageCircle size={22} className="text-white" />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -173,8 +173,8 @@ const Chat = () => {
                 }}
               >Let's Talk</span>
             </Link>
-            <Link to="/mood" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <Zap size={22} />
+            <Link to="/mood" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
+              <Zap size={22} className="text-white" />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -185,8 +185,8 @@ const Chat = () => {
                 }}
               >Mood</span>
             </Link>
-            <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <BookOpen size={22} />
+            <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
+              <BookOpen size={22} className="text-white" />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -200,8 +200,10 @@ const Chat = () => {
           </nav>
         </div>
         <div className="flex flex-col gap-4 p-4">
-          <Link to="/" className="flex items-center gap-3 hover:bg-teal-600 py-2 px-4 rounded-md">
-            <User size={22} />
+          <Link to="/" className={`flex items-center gap-3 py-2 px-4 rounded-md transition-colors ${isOpen ? 'hover:bg-accentDark/80' : 'justify-center'}`}>
+            <div className={!isOpen ? 'bg-accentDark/40 rounded-lg p-2' : ''}>
+              <User size={22} className="text-white" />
+            </div>
             <span
               style={{
                 opacity: isOpen ? 1 : 0,
@@ -212,8 +214,10 @@ const Chat = () => {
               }}
             >Profile</span>
           </Link>
-          <Link to="/" className="flex items-center gap-3 hover:bg-teal-600 py-2 px-4 rounded-md">
-            <Settings size={22} />
+          <Link to="/" className={`flex items-center gap-3 py-2 px-4 rounded-md transition-colors ${isOpen ? 'hover:bg-accentDark/80' : 'justify-center'}`}>
+            <div className={!isOpen ? 'bg-accentDark/40 rounded-lg p-2' : ''}>
+              <Settings size={22} className="text-white" />
+            </div>
             <span
               style={{
                 opacity: isOpen ? 1 : 0,
@@ -239,13 +243,13 @@ const Chat = () => {
         {/* Calming Music Toggle Switch */}
         <div className="absolute top-2 right-4 z-20 flex items-center">
           {/* Music note icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-6 w-6 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-6 w-6 text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18V5l12-2v13" />
             <circle cx="5" cy="19" r="3" />
           </svg>
           <button
             onClick={handleMusicToggle}
-            className={`relative w-14 h-8 bg-teal-200 rounded-full transition-colors duration-300 focus:outline-none shadow-md`}
+            className={`relative w-14 h-8 bg-border rounded-full transition-colors duration-300 focus:outline-none shadow-md`}
             aria-label={musicOn ? 'Pause Calming Music' : 'Play Calming Music'}
           >
             <span
@@ -253,14 +257,14 @@ const Chat = () => {
               style={{ willChange: 'transform' }}
             >
               {musicOn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" /><circle cx="5" cy="19" r="2" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" /><circle cx="5" cy="19" r="2" /></svg>
               )}
             </span>
             {/* Track color change */}
             <span
-              className={`absolute inset-0 rounded-full pointer-events-none transition-colors duration-300 ${musicOn ? 'bg-teal-500' : 'bg-teal-200'}`}
+              className={`absolute inset-0 rounded-full pointer-events-none transition-colors duration-300 ${musicOn ? 'bg-accent' : 'bg-border'}`}
             />
           </button>
         </div>
@@ -292,7 +296,7 @@ const Chat = () => {
 
           {/* Input Box */}
           <form onSubmit={handleSend} className="flex items-center mt-2">
-            <div className="flex items-center w-full bg-white rounded-full shadow border border-teal-200">
+            <div className="flex items-center w-full bg-white rounded-full shadow border border-border">
               <input
                 type="text"
                 value={inputValue}
@@ -300,7 +304,7 @@ const Chat = () => {
                 className="flex-1 p-3 outline-none text-gray-700 bg-transparent"
                 placeholder="Type your message..."
               />
-              <button type="submit" className="p-3 text-teal-600 hover:text-teal-800 transition-colors">
+              <button type="submit" className="p-3 text-accentDark hover:text-accentDark/80 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 19V5"></path>
                   <path d="m5 12 7-7 7 7"></path>
