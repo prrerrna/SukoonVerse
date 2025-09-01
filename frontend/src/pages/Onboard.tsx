@@ -1,16 +1,7 @@
 import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  ChevronRight, 
-  ChevronLeft, 
-  Home, 
-  MessageCircle, 
-  Zap, 
-  BookOpen, 
-  User, 
-  Settings,
-  
-} from "lucide-react"; // icons
+import { ChevronRight, MessageCircle, Zap, BookOpen, User } from "lucide-react"; // page section icons
+import Sidebar from "../components/Sidebar";
 
 const Onboard = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,129 +22,8 @@ const Onboard = () => {
 
   return (
   <div className="flex flex-col min-h-screen bg-background">
-      {/* Sidebar */}
-    <div
-  className={`fixed left-0 top-0 h-full bg-gradient-to-b from-accentDark to-accent text-white flex flex-col justify-between z-10`}
-        style={{
-          width: isOpen ? '16rem' : '5rem',
-          transition: 'width 400ms cubic-bezier(.22,.9,.36,1)',
-          willChange: 'width',
-        }}
-      >
-        {/* Top Section */}
-        <div>
-          {/* Logo + Toggle Button */}
-          <div className="flex items-center justify-between p-4">
-            <img
-              src="/logo.png"
-              alt="SukoonVerse"
-              className="h-10 w-10 rounded-full border-2 border-accentDark"
-            />
-            <button onClick={() => setIsOpen(!isOpen)} className="hover:bg-accentDark/80 p-1 rounded-full">
-              {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
-            </button>
-          </div>
-
-          {/* Nav Links */}
-          <nav className="mt-6 flex flex-col gap-4">
-            <Link to="/" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
-        <Home size={22} className="text-white" />
-              <span
-                style={{
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                  transition: 'opacity 300ms, transform 300ms',
-                  display: 'inline-block',
-          width: isOpen ? 'auto' : 0,
-                }}
-              >Home</span>
-            </Link>
-            <Link to="/chat" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
-              <MessageCircle size={22} className="text-white" />
-              <span
-                style={{
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                  transition: 'opacity 300ms, transform 300ms',
-                  display: 'inline-block',
-                  width: isOpen ? 'auto' : 0,
-                }}
-              >Let's Talk</span>
-            </Link>
-            <Link to="/mood" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
-              <Zap size={22} className="text-white" />
-              <span
-                style={{
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                  transition: 'opacity 300ms, transform 300ms',
-                  display: 'inline-block',
-                  width: isOpen ? 'auto' : 0,
-                }}
-              >Mood</span>
-            </Link>
-            <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
-              <BookOpen size={22} className="text-white" />
-            </Link>
-            <Link to="/pulse" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <User size={22} />
-              <span
-                style={{
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                  transition: 'opacity 300ms, transform 300ms',
-                  display: 'inline-block',
-                  width: isOpen ? 'auto' : 0,
-                }}
-              >Pulse</span>
-            </Link>
-            <Link to="/notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
-              <BookOpen size={22} />
-              <span
-                style={{
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                  transition: 'opacity 300ms, transform 300ms',
-                  display: 'inline-block',
-                  width: isOpen ? 'auto' : 0,
-                }}
-              >Tell me</span>
-            </Link>
-          </nav>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="flex flex-col gap-4 p-4">
-          <Link to="/profile" className={`flex items-center gap-3 py-2 px-4 rounded-md transition-colors ${isOpen ? 'hover:bg-accentDark/80' : 'justify-center'}`}>
-            <div className={!isOpen ? 'bg-accentDark/40 rounded-lg p-2' : ''}>
-              <User size={22} className="text-white" />
-            </div>
-            <span
-              style={{
-                opacity: isOpen ? 1 : 0,
-                transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                transition: 'opacity 300ms, transform 300ms',
-                display: 'inline-block',
-                width: isOpen ? 'auto' : 0,
-              }}
-            >Profile</span>
-          </Link>
-          <Link to="/settings" className={`flex items-center gap-3 py-2 px-4 rounded-md transition-colors ${isOpen ? 'hover:bg-accentDark/80' : 'justify-center'}`}>
-            <div className={!isOpen ? 'bg-accentDark/40 rounded-lg p-2' : ''}>
-              <Settings size={22} className="text-white" />
-            </div>
-            <span
-              style={{
-                opacity: isOpen ? 1 : 0,
-                transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
-                transition: 'opacity 300ms, transform 300ms',
-                display: 'inline-block',
-                width: isOpen ? 'auto' : 0,
-              }}
-            >Settings</span>
-          </Link>
-        </div>
-      </div>
+  {/* Sidebar */}
+  <Sidebar isOpen={isOpen} onToggle={() => setIsOpen((o) => !o)} />
 
       {/* Main Content with left margin to accommodate sidebar */}
       <div

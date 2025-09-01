@@ -6,6 +6,8 @@ import Mood from './pages/Mood';
 import Resources from './pages/Resources';
 import Notes from './pages/Notes';
 import Pulse from './pages/Pulse';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 // This is the root App component.
 // It uses React Router to define the different pages of the application.
@@ -21,6 +23,8 @@ const App = () => {
           <Route path="/mood" element={<Mood />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/pulse" element={<Pulse />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>
     </Router>
