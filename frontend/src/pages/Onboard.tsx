@@ -1,12 +1,15 @@
 import { useState, useRef } from "react";
+import Wave from "react-wavify";
+
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, MessageCircle, Zap, BookOpen, User } from "lucide-react"; // page section icons
+import { ChevronRight, MessageCircle, Zap, BookOpen, User, Shield, Heart, Users } from "lucide-react"; // page section icons
 import Sidebar from "../components/Sidebar";
 
 const Onboard = () => {
   const [isOpen, setIsOpen] = useState(false);
   const toolsRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
+  
   
   // Handle chat button click
   const handleChatClick = () => {
@@ -29,14 +32,33 @@ const Onboard = () => {
       <div
         className={`flex-1`}
         style={{
-          marginLeft: isOpen ? '16rem' : '5rem',
+          marginLeft: isOpen ? '12rem' : '5rem',
           transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)',
           willChange: 'margin-left',
         }}
       >
         {/* Hero Section */}
-        <section className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative">
-          <div className="max-w-4xl mx-auto text-center">
+         <section className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative overflow-hidden bg-[#e0ebd3]">
+           {/* Decorative background waves */}
+           <div className="absolute inset-x-0 bottom-0 h-[45vh] pointer-events-none" aria-hidden="true" style={{ zIndex: 0 }}>
+             <div style={{ position: 'absolute', inset: 0, opacity: 0.7 }}>
+              <Wave
+                fill="#dbe9c8"
+                paused={false}
+                options={{ height: 50, amplitude: 26, speed: 0.18, points: 3 }}
+                style={{ width: '100%', height: '100%' }}
+              />
+             </div>
+             <div style={{ position: 'absolute', inset: 0, opacity: 0.9, transform: 'translateY(12px)' }}>
+              <Wave
+                fill="#cfe3b3"
+                paused={false}
+                options={{ height: 40, amplitude: 20, speed: 0.12, points: 5 }}
+                style={{ width: '100%', height: '100%' }}
+              />
+             </div>
+           </div>
+          <div className="max-w-4xl mx-auto text-center relative z-10">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 text-main leading-tight">
               SukoonVerse: Your Safe Space
             </h1>
@@ -75,8 +97,8 @@ const Onboard = () => {
             <h2 className="text-3xl font-bold mb-2 text-center text-main">Your Mental Wellness Toolkit</h2>
             <p className="text-xl text-center text-subtle mb-12">Discover our carefully designed tools to support your mental health journey</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-surface p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white p-8 rounded-3xl shadow-lg transform transition-transform duration-300 hover:-translate-y-2 border border-border">
                 <div className="bg-accent text-buttontext p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                   <MessageCircle size={28} />
                 </div>
@@ -88,7 +110,7 @@ const Onboard = () => {
                 </Link>
               </div>
               
-              <div className="bg-surface p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-border">
+              <div className="bg-white p-8 rounded-3xl shadow-lg transform transition-transform duration-300 hover:-translate-y-2 border border-border">
                 <div className="bg-accent text-buttontext p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                   <Zap size={28} />
                 </div>
@@ -100,7 +122,7 @@ const Onboard = () => {
                 </Link>
               </div>
               
-              <div className="bg-surface p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-border">
+              <div className="bg-white p-8 rounded-3xl shadow-lg transform transition-transform duration-300 hover:-translate-y-2 border border-border">
                 <div className="bg-accent text-buttontext p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                   <BookOpen size={28} />
                 </div>
@@ -112,30 +134,64 @@ const Onboard = () => {
                 </Link>
               </div>
 
-              <div className="bg-gradient-to-br from-teal-50 to-blue-50 p-8 rounded-xl shadow-lg transform transition hover:scale-105 border border-teal-100 md:col-span-3">
-                <div className="flex items-center gap-4">
-                  <div className="bg-teal-600 text-white p-3 rounded-full w-14 h-14 flex items-center justify-center">
-                    <User size={28} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-semibold mb-1 text-teal-800">Sukoon Pulse</h3>
-                    <p className="text-gray-700 mb-2">See your community's anonymous mood pulse and get AI-powered care actions everyone can try together.</p>
-                    <Link to="/pulse" className="text-teal-600 font-medium hover:text-teal-800 inline-flex items-center">
-                      <span>Open Pulse</span>
-                      <ChevronRight size={18} className="ml-1" />
-                    </Link>
-                  </div>
+              {/* Sukoon Pulse (now themed like other feature cards) */}
+              <div className="bg-white p-8 rounded-3xl shadow-lg transform transition-transform duration-300 hover:-translate-y-2 border border-border">
+                <div className="bg-accent text-buttontext p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
+                  <User size={28} />
                 </div>
+                <h3 className="text-2xl font-semibold mb-3 text-main">Sukoon Pulse</h3>
+                <p className="text-subtle mb-4">See your community's anonymous mood pulse and try AI-suggested care actions together.</p>
+                <Link to="/pulse" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
+                  <span className="text-main">Open Pulse</span>
+                  <ChevronRight size={18} className="ml-1" />
+                </Link>
               </div>
-              <div className="col-span-1 md:col-span-3 flex items-center justify-center my-2">
-                <div className="flex flex-row items-center bg-surface rounded-2xl shadow border border-border px-8 py-6 w-full max-w-4xl mx-auto">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-accentDark mr-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8a2 2 0 012-2h2m2-4h6a2 2 0 012 2v2a2 2 0 01-2 2H9a2 2 0 01-2-2V6a2 2 0 012-2z" /></svg>
-                  <div className="flex flex-col text-left">
-                    <p className="text-xl md:text-2xl text-main font-medium leading-relaxed">
-                      "Mental health struggles are real, but so is recovery. We're here to walk alongside you on your journey toward wellness, one step at a time."
-                    </p>
-                    <p className="text-sm text-subtle mt-2 font-semibold">— The SukoonVerse Team</p>
-                  </div>
+              {/* Quote moved to its own section below */}
+            </div>
+          </div>
+        </section>
+
+        {/* Values Section: Built with Care & Authenticity */}
+  <section className="py-20 px-8 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center text-main">Built with Care & Authenticity</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <div className="text-center">
+                <Shield size={44} className="mx-auto mb-4 text-main" />
+                <h3 className="text-xl font-semibold text-main mb-2">100% Confidential</h3>
+                <p className="text-subtle max-w-xs mx-auto">
+                  Your privacy is our priority. All interactions are secure and anonymous.
+                </p>
+              </div>
+              <div className="text-center">
+                <Heart size={44} className="mx-auto mb-4 text-main" />
+                <h3 className="text-xl font-semibold text-main mb-2">Genuinely Caring</h3>
+                <p className="text-subtle max-w-xs mx-auto">
+                  Created by mental health advocates who understand the struggles of youth.
+                </p>
+              </div>
+              <div className="text-center">
+                <Users size={44} className="mx-auto mb-4 text-accentDark" />
+                <h3 className="text-xl font-semibold text-main mb-2">Community Driven</h3>
+                <p className="text-subtle max-w-xs mx-auto">
+                  Built with input from young people, for young people.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+  {/* Quote Section */}
+  <section className="py-8 px-8 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-center my-2">
+              <div className="flex flex-row items-center bg-[#ecefe6] rounded-2xl shadow border border-border px-8 py-6 w-full max-w-4xl mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-accentDark mr-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8a2 2 0 012-2h2m2-4h6a2 2 0 012 2v2a2 2 0 01-2 2H9a2 2 0 01-2-2V6a2 2 0 012-2z" /></svg>
+                <div className="flex flex-col text-left">
+                  <p className="text-xl md:text-2xl text-main font-medium leading-relaxed">
+                    "Mental health struggles are real, but so is recovery. We're here to walk alongside you on your journey toward wellness, one step at a time."
+                  </p>
+                  <p className="text-sm text-subtle mt-2 font-semibold text-center">— The SukoonVerse Team</p>
                 </div>
               </div>
             </div>
@@ -170,11 +226,15 @@ const Onboard = () => {
       {/* Floating Chat Button */}
       <button 
         onClick={handleChatClick}
-        className="group fixed bottom-8 right-8 bg-accentDark hover:bg-accentDark/90 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transform transition hover:scale-110 z-50 animate-pulse-chat"
+        className="group fixed bottom-8 right-8 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transform transition hover:scale-110 z-50 animate-pulse-chat ring-2 ring-accent/20"
         aria-label="Let's Talk"
+        style={{
+          background: 'linear-gradient(135deg, #263a1e 0%, #6ea43a 60%, #a3c167 100%)',
+          boxShadow: '0 10px 24px rgba(38,58,30,0.25)'
+        }}
       >
         <MessageCircle size={28} />
-        <span className="absolute -top-10 right-0 bg-white text-accentDark px-3 py-1 rounded-lg shadow-md text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Let's Talk</span>
+        <span className="absolute -top-10 right-0 bg-accentDark text-white px-3 py-1 rounded-lg shadow-md text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Let's Talk</span>
       </button>
     </div>
   );
