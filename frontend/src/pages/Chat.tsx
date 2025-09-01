@@ -14,7 +14,8 @@ import {
   Zap,
   BookOpen,
   User,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 
 // This component handles the main chat functionality.
@@ -100,9 +101,9 @@ const Chat = () => {
             If you're experiencing a mental health crisis or emergency, please reach out to one of these resources immediately:
           </p>
           <ul className="list-disc pl-5 mb-4">
-            <li className="mb-2">National Suicide Prevention Lifeline: <a href="tel:988" className="text-blue-600 underline">988</a></li>
-            <li className="mb-2">Crisis Text Line: Text HOME to <a href="sms:741741" className="text-blue-600 underline">741741</a></li>
-            <li>Emergency Services: <a href="tel:911" className="text-blue-600 underline">911</a></li>
+            <li className="mb-2">KIRAN National Mental Health Helpline: <a href="tel:18005990019" className="text-blue-600 underline">1800-599-0019</a></li>
+            <li className="mb-2">iCALL (TISS) Counselling Helpline: <a href="tel:9152987821" className="text-blue-600 underline">9152987821</a></li>
+            <li>Emergency Services (India): <a href="tel:112" className="text-blue-600 underline">112</a></li>
           </ul>
           <BreathTimer />
           <div className="flex justify-end">
@@ -185,8 +186,20 @@ const Chat = () => {
                 }}
               >Mood</span>
             </Link>
-            <Link to="/Notes" className="flex items-center gap-3 px-4 hover:bg-accentDark/80 py-2 rounded-md">
-              <BookOpen size={22} className="text-white" />
+            <Link to="/pulse" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
+              <Users size={22} />
+              <span
+                style={{
+                  opacity: isOpen ? 1 : 0,
+                  transform: isOpen ? 'translateX(0)' : 'translateX(-16px)',
+                  transition: 'opacity 300ms, transform 300ms',
+                  display: 'inline-block',
+                  width: isOpen ? 'auto' : 0,
+                }}
+              >Pulse</span>
+            </Link>
+            <Link to="/notes" className="flex items-center gap-3 px-4 hover:bg-teal-600 py-2 rounded-md">
+              <BookOpen size={22} />
               <span
                 style={{
                   opacity: isOpen ? 1 : 0,

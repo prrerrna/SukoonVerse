@@ -85,3 +85,34 @@ export const flagCrisis = async (payload: { session_id: string; reason: string }
   }
   return response.json();
 };
+
+// Pulse: report anonymous aggregate
+export const reportPulse = async (payload: { session_id: string; region: string; mood_score: number; themes: string[] }) => {
+  const res = await fetch(`${API_BASE_URL}/pulse/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to report pulse');
+  return res.json();
+};
+
+// Pulse: get region summary
+export const getPulseSummary = async (region: string) => {
+  const res = await fetch(`${API_BASE_URL}/pulse/summary?region=${encodeURIComponent(region)}`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch pulse summary');
+  return res.json();
+};
+
+// Pulse: feedback on action usefulness
+export const sendPulseFeedback = async (payload: { session_id: string; region: string; suggestion_id: string; value: 1 | -1 }) => {
+  const res = await fetch(`${API_BASE_URL}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to send feedback');
+  return res.json();
+};

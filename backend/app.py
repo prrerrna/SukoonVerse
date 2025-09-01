@@ -14,6 +14,7 @@ from app.routes.chat import chat_bp
 from app.routes.mood import mood_bp
 from app.routes.resources import resources_bp
 from app.routes.flag import flag_bp
+from app.routes.pulse import pulse_bp
 
 # Flask app initialization
 app = Flask(__name__)
@@ -40,6 +41,7 @@ app.register_blueprint(chat_bp, url_prefix='/api')
 app.register_blueprint(mood_bp, url_prefix='/api')
 app.register_blueprint(resources_bp, url_prefix='/api')
 app.register_blueprint(flag_bp, url_prefix='/api')
+app.register_blueprint(pulse_bp, url_prefix='/api')
 
 @app.route('/')
 def index():
