@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
+import Lottie from "lottie-react";
 import Wave from "react-wavify";
 
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, MessageCircle, Zap, BookOpen, User, Shield, Heart, Users } from "lucide-react"; // page section icons
 import Sidebar from "../components/Sidebar";
+import yogaAnimation from "../animations/yoga.json";
 
 const Onboard = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,43 +40,56 @@ const Onboard = () => {
         }}
       >
         {/* Hero Section */}
-         <section className="min-h-screen flex flex-col justify-center items-center px-4 py-20 relative overflow-hidden bg-[#e0ebd3]">
+  <section className="min-h-[100svh] sm:min-h-screen flex flex-col justify-center items-center px-4 py-20 relative overflow-hidden bg-[#e0ebd3]">
            {/* Decorative background waves */}
-           <div className="absolute inset-x-0 bottom-0 h-[45vh] pointer-events-none" aria-hidden="true" style={{ zIndex: 0 }}>
-             <div style={{ position: 'absolute', inset: 0, opacity: 0.7 }}>
+        <div className="absolute inset-x-0 bottom-0 h-[40vh] md:h-[45vh] pointer-events-none" aria-hidden="true" style={{ zIndex: 0 }}>
+         <div style={{ position: 'absolute', inset: 0, opacity: 0.85, transform: 'translateY(32px)' }}>
               <Wave
                 fill="#dbe9c8"
-                paused={false}
-                options={{ height: 50, amplitude: 26, speed: 0.18, points: 3 }}
+           paused={false}
+           options={{ height: 36, amplitude: 22, speed: 0.32, points: 3 }}
                 style={{ width: '100%', height: '100%' }}
               />
              </div>
-             <div style={{ position: 'absolute', inset: 0, opacity: 0.9, transform: 'translateY(12px)' }}>
+         <div style={{ position: 'absolute', inset: 0, opacity: 0.95, transform: 'translateY(56px)' }}>
               <Wave
                 fill="#cfe3b3"
-                paused={false}
-                options={{ height: 40, amplitude: 20, speed: 0.12, points: 5 }}
+           paused={false}
+           options={{ height: 28, amplitude: 16, speed: 0.26, points: 5 }}
                 style={{ width: '100%', height: '100%' }}
               />
              </div>
            </div>
           <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-main leading-tight">
-              SukoonVerse: Your Safe Space
+            <h1 className="text-7xl md:text-8xl font-extrabold mb-1 text-main leading-tight font-hero relative z-10">
+              Welcome to SukoonVerse
             </h1>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-main">
+            {/* Centered Lottie animation below the main heading */}
+    <div className="flex justify-center -mt-10 md:-mt-12 mb-8 relative z-20">
+      <div className="w-72 md:w-96 drop-shadow-lg">
+                <Lottie animationData={yogaAnimation} loop={true} autoplay={true} />
+              </div>
+            </div>
+            {/* Additional hero copy moved below fold */}
+          </div>
+        </section>
+
+        {/* Below-the-fold intro content (appears after first scroll) */}
+        <section className="py-10 px-4 bg-[#e0ebd3] relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-xl md:text-2xl font-semibold mb-6 text-subtle">
               An AI-powered, confidential, and empathetic mental wellness solution that supports and guides youth in overcoming stigma and accessing help.
             </h2>
-            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-lg mb-8">
+            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-main">Our Mission</h2>
-               <p className="text-lg text-subtle leading-relaxed">
-                Create a safe space where young individuals can share their thoughts, 
-                release frustrations, and connect with others for empathy and support. 
-                We believe every young person deserves access to mental wellness resources 
+              <p className="text-lg text-subtle leading-relaxed">
+                Create a safe space where young individuals can share their thoughts,
+                release frustrations, and connect with others for empathy and support.
+                We believe every young person deserves access to mental wellness resources
                 without fear or judgment.
               </p>
             </div>
-            <button 
+            <button
               onClick={scrollToTools}
               className="font-bold py-3 px-8 rounded-2xl shadow-lg transform transition hover:scale-105 flex items-center mx-auto text-white text-xl"
               style={{
