@@ -1,11 +1,11 @@
 // Chat.tsx: The main chat interface component where users interact with the AI.
 import { useState, useRef, useEffect } from 'react';
 import useSession from '../hooks/useSession';
-import { sendMessage } from '../lib/api';
+import { sendMessage, generateChatTitle } from '../lib/api';
 import ChatBubble from '../components/ChatBubble';
 import BreathTimer from '../components/BreathTimer';
-import { addSnapshot } from '../utils/indexeddb';
-import Sidebar from '../components/Sidebar';
+import { addSnapshot, addChatMessage, createChatSession, getActiveChatId, getChatMessages, setActiveChatId } from '../utils/indexeddb';
+import ChatToolbar from '../components/ChatToolbar';
 
 // This component handles the main chat functionality.
 // All state and logic are managed inline using React hooks.
@@ -15,13 +15,17 @@ const Chat = () => {
   const [messages, setMessages] = useState<{ id: string; author: 'user' | 'bot'; text: string; floating?: boolean }[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
-  const [isOpen, setIsOpen] = useState(false); // sidebar state
+  const [activeChatId, setActiveChat] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [toolbarOpen, setToolbarOpen] = useState(true);
+  const [toolbarRefreshTick, setToolbarRefreshTick] = useState(0);
   const [musicOn, setMusicOn] = useState(false); // music toggle
   // For toggle animation
   const handleMusicToggle = () => setMusicOn((prev) => !prev);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -44,21 +48,61 @@ const Chat = () => {
     }, 650);
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!inputValue.trim() || !sessionId) return;
+  // Ensure we have a chat session AFTER sending the first message
+  let chatId = activeChatId || getActiveChatId();
     const userId = `u_${Date.now()}`;
     const userMessage = { id: userId, author: 'user' as const, text: inputValue, floating: true };
     setMessages(prev => [...prev, userMessage]);
     clearFloating(userId);
     const textToSend = inputValue;
     setInputValue('');
-    try {
-      const response = await sendMessage({ session_id: sessionId, message: textToSend, lang_hint: 'en' });
+  // show typing indicator immediately (even while creating session/title)
+  setIsTyping(true);
+    // If no session yet, generate title and create it now, then persist message
+    if (!chatId) {
+      let title: string | null = null;
+      try {
+        const { title: serverTitle } = await generateChatTitle(textToSend);
+        if (serverTitle && serverTitle.trim()) {
+          title = serverTitle.trim();
+        }
+      } catch {}
+      // Fallback: first 6 words
+      if (!title) {
+        const words = textToSend.trim().split(/\s+/).slice(0, 6);
+        const raw = words.join(' ');
+        // Basic title case
+        const small = new Set(['a','an','the','and','or','but','for','nor','on','at','to','from','by','of','in','with']);
+        const parts = raw.split(' ');
+        title = parts
+          .map((w, i) => {
+            const wl = w.toLowerCase();
+            if (i !== 0 && small.has(wl)) return wl;
+            return wl.charAt(0).toUpperCase() + wl.slice(1);
+          })
+          .join(' ');
+      }
+      const s = await createChatSession(title || 'New chat');
+      chatId = s.id;
+      setActiveChatId(chatId);
+      setActiveChat(chatId);
+      // poke toolbar to refresh list
+      setToolbarRefreshTick(t => t + 1);
+    }
+    // persist user message (now we definitely have chatId)
+    await addChatMessage({ sessionId: chatId as string, author: 'user', text: textToSend, timestamp: Date.now() });
+  try {
+  const response = await sendMessage({ session_id: sessionId, message: textToSend, lang_hint: 'en', chat_id: chatId });
       const botId = `b_${Date.now()}`;
       const botMessage = { id: botId, author: 'bot' as const, text: response.reply, floating: true };
       setMessages(prev => [...prev, botMessage]);
       clearFloating(botId);
+      setIsTyping(false);
+      // persist bot message
+  await addChatMessage({ sessionId: chatId as string, author: 'bot', text: response.reply, timestamp: Date.now() });
       if (response.is_crisis) {
         setIsCrisis(true);
       } else {
@@ -74,12 +118,28 @@ const Chat = () => {
         await addSnapshot(moodData);
       }
     } catch (error) {
+      setIsTyping(false);
       const errId = `e_${Date.now()}`;
       const errorMessage = { id: errId, author: 'bot' as const, text: 'Sorry, something went wrong.', floating: true };
       setMessages(prev => [...prev, errorMessage]);
       clearFloating(errId);
     }
   };
+
+  // Load active session on mount (do not auto-create a session)
+  useEffect(() => {
+    (async () => {
+      const chatId = getActiveChatId();
+      setActiveChat(chatId);
+      if (chatId) {
+        const items = await getChatMessages(chatId);
+        const hydrated = items.map(m => ({ id: `${m.author}_${m.timestamp}`, author: m.author as 'user' | 'bot', text: m.text }));
+        setMessages(hydrated);
+      } else {
+        setMessages([]);
+      }
+    })();
+  }, []);
 
   if (isCrisis) {
     return (
@@ -109,7 +169,19 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
+      {/* Chat Toolbar styled like sidebar */}
+  <ChatToolbar isOpen={toolbarOpen} onToggle={() => setToolbarOpen(o => !o)} activeId={activeChatId} refreshToken={toolbarRefreshTick} onSelect={async (id) => {
+        setActiveChat(id || null);
+        if (id) {
+          setActiveChatId(id);
+          const items = await getChatMessages(id);
+          const hydrated = items.map(m => ({ id: `${m.author}_${m.timestamp}`, author: m.author as 'user' | 'bot', text: m.text }));
+          setMessages(hydrated);
+        } else {
+          setMessages([]);
+        }
+      }} />
       {/* Calming Music Audio Element */}
       <audio
         ref={audioRef}
@@ -122,18 +194,8 @@ const Chat = () => {
         Your browser does not support the audio element.
       </audio>
 
-  {/* Sidebar */}
-  <Sidebar isOpen={isOpen} onToggle={() => setIsOpen((o) => !o)} />
-
       {/* Main Chat Content with left margin to accommodate sidebar */}
-      <div
-        className={`flex-1 flex flex-col items-center pt-8 relative`}
-        style={{
-          marginLeft: isOpen ? '16rem' : '5rem',
-          transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)',
-          willChange: 'margin-left',
-        }}
-      >
+  <div className={`flex-1 flex flex-col items-center pt-6 relative`} style={{ marginLeft: toolbarOpen ? '16rem' : '5rem', transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)' }}>
         {/* Calming Music Toggle Switch */}
         <div className="absolute top-2 right-4 z-20 flex items-center">
           {/* Music note icon */}
@@ -185,9 +247,23 @@ const Chat = () => {
                 <ChatBubble author={msg.author} text={msg.text} />
               </div>
             ))}
+            {isTyping && (
+              <div className="floating" style={{ willChange: 'transform, opacity' }}>
+                <ChatBubble
+                  author="bot"
+                  text={
+                    <div className="flex items-center gap-1">
+                      <span className="sr-only">Assistant is typing</span>
+                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:-0.2s]"></span>
+                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:0s]"></span>
+                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                    </div>
+                  }
+                />
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
-
           {/* Input Box */}
           <form onSubmit={handleSend} className="flex items-center mt-2">
             <div className="flex items-center w-full bg-white rounded-full shadow border border-border">
@@ -207,11 +283,11 @@ const Chat = () => {
             </div>
           </form>
         </div>
-        <div className="text-center text-xs text-gray-700 mt-2 bg-white/80 p-2 rounded-lg max-w-2xl mx-auto">
+  <div className="text-center text-xs text-gray-700 mt-2 bg-white/80 p-2 rounded-lg max-w-4xl mx-auto">
           Disclaimer: Not a clinician. For emergencies call your local helpline.
         </div>
       </div>
-    </div>
+  </div>
   );
 };
 

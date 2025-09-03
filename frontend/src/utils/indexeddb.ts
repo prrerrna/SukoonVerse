@@ -35,15 +35,47 @@ interface SakhiDB extends DBSchema {
     };
     indexes: { 'timestamp': number };
   };
+  chat_sessions: {
+    key: string; // sessionId (uuid)
+    value: {
+      id: string;
+      title: string;
+      createdAt: number;
+      updatedAt: number;
+    };
+    indexes: { 'updatedAt': number };
+  };
+  chat_messages: {
+    key: number; // auto-increment id
+    value: {
+      id?: number;
+      sessionId: string;
+      author: 'user' | 'bot';
+      text: string;
+      timestamp: number;
+    };
+    indexes: { 'sessionId': string; 'sessionId_timestamp': [string, number] };
+  };
 }
 
-const dbPromise = openDB<SakhiDB>('sakhi-journal', 1, {
-  upgrade(db) {
-    const store = db.createObjectStore('moods', {
-      keyPath: 'id',
-      autoIncrement: true,
-    });
-    store.createIndex('timestamp', 'timestamp');
+const dbPromise = openDB<SakhiDB>('sakhi-journal', 2, {
+  upgrade(db, oldVersion) {
+    if (oldVersion < 1) {
+      const store = db.createObjectStore('moods', {
+        keyPath: 'id',
+        autoIncrement: true,
+      });
+      store.createIndex('timestamp', 'timestamp');
+    }
+    if (oldVersion < 2) {
+      // chat_sessions
+      const s = db.createObjectStore('chat_sessions', { keyPath: 'id' });
+      s.createIndex('updatedAt', 'updatedAt');
+      // chat_messages
+      const m = db.createObjectStore('chat_messages', { keyPath: 'id', autoIncrement: true });
+      m.createIndex('sessionId', 'sessionId');
+      m.createIndex('sessionId_timestamp', ['sessionId', 'timestamp']);
+    }
   },
 });
 
@@ -117,3 +149,76 @@ if (typeof window !== 'undefined') {
         }
     });
 }
+
+// ---------------- Chat persistence helpers ----------------
+import { v4 as uuidv4 } from 'uuid';
+
+export type ChatSession = { id: string; title: string; createdAt: number; updatedAt: number };
+export type ChatMessage = { id?: number; sessionId: string; author: 'user' | 'bot'; text: string; timestamp: number };
+
+export const createChatSession = async (title = 'New chat'): Promise<ChatSession> => {
+  const db = await dbPromise;
+  const id = uuidv4();
+  const now = Date.now();
+  const session: ChatSession = { id, title, createdAt: now, updatedAt: now };
+  await db.put('chat_sessions', session);
+  return session;
+};
+
+export const listChatSessions = async (): Promise<ChatSession[]> => {
+  const db = await dbPromise;
+  const all = await db.getAll('chat_sessions');
+  return all.sort((a, b) => b.updatedAt - a.updatedAt);
+};
+
+export const renameChatSession = async (id: string, newTitle: string): Promise<void> => {
+  const db = await dbPromise;
+  const s = await db.get('chat_sessions', id);
+  if (!s) return;
+  s.title = newTitle || s.title;
+  s.updatedAt = Date.now();
+  await db.put('chat_sessions', s);
+};
+
+export const deleteChatSession = async (id: string): Promise<void> => {
+  const db = await dbPromise;
+  // delete messages for session
+  const idx = db.transaction('chat_messages', 'readwrite');
+  const store = idx.store;
+  let cursor = await store.index('sessionId').openCursor(IDBKeyRange.only(id));
+  while (cursor) {
+    await cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await db.delete('chat_sessions', id);
+};
+
+export const addChatMessage = async (msg: ChatMessage): Promise<number> => {
+  const db = await dbPromise;
+  // update session updatedAt
+  const s = await db.get('chat_sessions', msg.sessionId);
+  if (s) {
+    s.updatedAt = Date.now();
+    await db.put('chat_sessions', s);
+  }
+  return db.add('chat_messages', { ...msg, timestamp: msg.timestamp ?? Date.now() });
+};
+
+export const getChatMessages = async (sessionId: string): Promise<ChatMessage[]> => {
+  const db = await dbPromise;
+  const results = await db.getAllFromIndex('chat_messages', 'sessionId_timestamp', IDBKeyRange.bound([sessionId, 0], [sessionId, Date.now()]));
+  return results.sort((a, b) => a.timestamp - b.timestamp);
+};
+
+export const setActiveChatId = (id: string) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('active_chat_id', id);
+  }
+};
+
+export const getActiveChatId = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return window.localStorage.getItem('active_chat_id');
+  }
+  return null;
+};

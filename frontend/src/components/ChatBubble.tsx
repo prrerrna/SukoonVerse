@@ -3,7 +3,9 @@
 // This is a simple, reusable component for displaying a chat message.
 // It has no internal logic, just receives props and renders UI.
 // This follows the "no new functions" rule as it's a standard component definition.
-const ChatBubble = ({ author, text }: { author: 'user' | 'bot'; text: string }) => {
+import { ReactNode } from 'react';
+
+const ChatBubble = ({ author, text }: { author: 'user' | 'bot'; text: ReactNode }) => {
   const isUser = author === 'user';
   // Use theme colors for user and bot
   return (

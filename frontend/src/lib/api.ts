@@ -19,6 +19,7 @@ type ChatPayload = {
   session_id: string;
   message: string;
   lang_hint: 'en' | 'hi';
+  chat_id?: string;
 };
 
 // An inline arrow function to send a chat message.
@@ -44,6 +45,22 @@ export const getResources = async (region: string = 'default') => {
     throw new Error('Network response was not ok');
   }
   return response.json();
+};
+
+// Request a short chat title from backend (Gemini). Returns { title?: string | null }.
+export const generateChatTitle = async (firstMessage: string): Promise<{ title?: string | null }> => {
+  const response = await fetch(`${API_BASE_URL}/chat/title`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ message: firstMessage }),
+  });
+  // Even if not ok, we'll let caller fallback
+  try {
+    return await response.json();
+  } catch {
+    return { title: null };
+  }
 };
 
 // Function to analyze mood from text
