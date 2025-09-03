@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     <div
       className={`fixed left-0 top-0 h-full bg-gradient-to-b from-accentDark to-accent text-white flex flex-col justify-between z-10 overscroll-contain overflow-hidden`}
       style={{
-        width: isOpen ? '16rem' : '5rem',
+        width: isOpen ? '12rem' : '5rem',
         transition: 'width 400ms cubic-bezier(.22,.9,.36,1)',
         willChange: 'width',
       }}

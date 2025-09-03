@@ -102,3 +102,8 @@ body {
   background: #a3c167;
   color: #263a1e;
 }
+
+/* Hero heading font */
+.font-hero {
+  font-family: 'Redressed', 'Segoe UI', Roboto, Arial, sans-serif;
+}
