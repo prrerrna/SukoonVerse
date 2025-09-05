@@ -17,7 +17,7 @@ const Chat = () => {
   const [isCrisis, setIsCrisis] = useState(false);
   const [activeChatId, setActiveChat] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [toolbarOpen, setToolbarOpen] = useState(true);
+  const [toolbarOpen, setToolbarOpen] = useState(false);
   const [toolbarRefreshTick, setToolbarRefreshTick] = useState(0);
   const [musicOn, setMusicOn] = useState(false); // music toggle
   // For toggle animation

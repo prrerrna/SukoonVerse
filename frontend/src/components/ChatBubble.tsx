@@ -13,7 +13,7 @@ const ChatBubble = ({ author, text }: { author: 'user' | 'bot'; text: ReactNode 
       <div
         className={`rounded-xl px-5 py-3 max-w-xs lg:max-w-md shadow-sm ${
           isUser
-            ? 'bg-teal-600 text-white' // match landing page theme
+            ? 'bg-accent/60 text-main' // lighter accent green
             : 'bg-white text-teal-900 border border-teal-100'
         }`}
         style={{ wordBreak: 'break-word' }}
