@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Sidebar from '../components/Sidebar';
 import { getPulseSummary, sendPulseFeedback } from '../lib/api';
 import useSession from '../hooks/useSession';
 import BreathTimer from '../components/BreathTimer';
@@ -30,14 +31,32 @@ const Pulse = () => {
     return Math.round(((s - 1) / 9) * 120);
   }, [pulse]);
 
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const handleSidebarToggle = () => setSidebarOpen((open) => !open);
+
   return (
-    <div className="p-6 md:p-10 bg-slate-50 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#D6EAD8] flex">
+      {/* Sidebar */}
+      <Sidebar isOpen={isSidebarOpen} onToggle={handleSidebarToggle} />
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="p-6 md:p-10">
+          <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-teal-800">Sukoon Pulse</h1>
+          <h1 className="text-3xl font-bold text-main">Sukoon Pulse</h1>
           <div className="flex items-center gap-2">
             <input value={region} onChange={(e)=>setRegion(e.target.value)} className="border rounded px-3 py-1" aria-label="region" />
-            <button onClick={load} className="px-3 py-1 bg-teal-600 text-white rounded">Refresh</button>
+            <button
+              onClick={load}
+              className="px-4 py-2 rounded-2xl shadow-lg transform transition hover:scale-105 flex items-center text-white text-base font-semibold"
+              style={{
+                background: 'linear-gradient(90deg, #263a1e 0%, #a3c167 100%)',
+                border: 'none',
+                boxShadow: '0 4px 16px rgba(38,58,30,0.12)',
+              }}
+            >
+              Refresh
+            </button>
           </div>
         </div>
 
@@ -72,14 +91,14 @@ const Pulse = () => {
             {(data?.top_themes || []).map((t:any)=> (
               <span key={t.name} className="px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-sm">{t.name} · {t.count}</span>
             ))}
-            {(!data?.top_themes || data.top_themes.length===0) && <span className="text-gray-500 text-sm">No data yet</span>}
+            {(!data?.top_themes || data.top_themes.length===0) && <span className="text-[#8CA88A] text-sm">No data yet</span>}
           </div>
         </div>
 
         {/* AI Summary and Actions */}
         <div className="bg-white rounded-2xl p-5 shadow mb-6">
           <h2 className="text-xl font-semibold mb-2">Community Care Feed</h2>
-          <p className="text-gray-700 mb-4">{data?.ai_summary || (loading ? 'Loading…' : 'Care ideas will appear here.')}</p>
+            <p className={`mb-4 ${!data?.ai_summary && !loading ? 'text-[#8CA88A]' : 'text-[#466C36]'}`}>{data?.ai_summary || (loading ? 'Loading…' : 'Care ideas will appear here.')}</p>
           <div className="space-y-3">
             {(data?.ai_actions || []).map((a: Action) => (
               <div key={a.id} className="border rounded-lg p-3 flex items-start justify-between gap-4">
@@ -114,16 +133,18 @@ const Pulse = () => {
         )}
       </div>
 
-      {showBreath && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>setShowBreath(false)}>
-          <div className="bg-white p-4 rounded-xl shadow" onClick={(e)=>e.stopPropagation()}>
-            <BreathTimer />
-            <div className="text-right mt-3">
-              <button className="px-3 py-1 bg-teal-600 text-white rounded" onClick={()=>setShowBreath(false)}>Close</button>
+          {showBreath && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>setShowBreath(false)}>
+              <div className="bg-white p-4 rounded-xl shadow" onClick={(e)=>e.stopPropagation()}>
+                <BreathTimer />
+                <div className="text-right mt-3">
+                  <button className="px-3 py-1 bg-teal-600 text-white rounded" onClick={()=>setShowBreath(false)}>Close</button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -31,16 +31,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         willChange: 'width',
         overflow: 'hidden',
       }}
-  onWheel={handleWheel}
-  onWheelCapture={handleWheel}
-  onTouchMove={handleTouchMove}
+      onWheel={handleWheel}
+      onWheelCapture={handleWheel}
+      onTouchMove={handleTouchMove}
     >
       {/* Top Section */}
       <div>
         {/* Logo + Toggle Button */}
-        <div id = "logo" className="flex items-center justify-between p-4">
-          <Logo size={44} />
-          <button onClick={onToggle} className="p-1 rounded-full transition-colors hover:bg-accentDark/80">
+        <div id="logo" className="flex items-center p-4">
+          <div className="flex flex-col items-center justify-center" style={{ minWidth: 56 }}>
+            <div className="flex items-center justify-center" style={{ minWidth: 56, minHeight: 56 }}>
+              <Logo size={56} />
+            </div>
+            {isOpen && (
+              <span className="text-lg font-bold text-white mt-2 transition-opacity duration-300">SukoonVerse</span>
+            )}
+          </div>
+          <div className="flex-1" />
+          <button onClick={onToggle} className="p-1 rounded-full transition-colors hover:bg-accentDark/80 ml-2">
             {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
           </button>
         </div>
