@@ -21,9 +21,9 @@ export default function MoodPicker({ value, onChange }: { value: { label: string
           <button
             key={opt.label}
             onClick={() => onChange({ label: opt.label, score: opt.score })}
-    className={`px-3 py-2 rounded-lg border min-w-0 text-xs sm:text-sm text-center leading-tight break-words transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+    className={`px-3 py-2 rounded-lg border min-w-0 text-xs sm:text-sm text-center leading-tight break-words transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/40 ${
               value.label === opt.label
-                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                ? 'bg-accent text-white border-accent shadow-sm'
                 : 'bg-white hover:bg-gray-100 border-gray-200'
             }`}
             title={`Mood score: ${opt.score}/10`}

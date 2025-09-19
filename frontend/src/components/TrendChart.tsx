@@ -85,12 +85,30 @@ const TrendChart = ({ data }: { data: ChartData[] }) => {
         <Tooltip content={<CustomTooltip />} />
         <Legend />
         <ReferenceArea y1={1} y2={4} fill="#f3f4f6" opacity={0.6} />
-        <ReferenceLine y={5} stroke="#666" strokeDasharray="3 3" label={{ value: 'Neutral', position: 'left' }} />
+          <ReferenceLine
+            y={5}
+            stroke="#666"
+            strokeDasharray="3 3"
+            label={{
+              value: 'Neutral',
+              position: 'top',
+              offset: 10,
+              style: {
+                fill: 'var(--accent, #6ea43a)', // theme accent color
+                fontWeight: 600,
+                fontSize: 14,
+                background: 'white',
+                padding: '2px 6px',
+                borderRadius: '6px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+              }
+            }}
+          />
         <ReferenceArea y1={8} y2={10} fill="#ecfdf5" opacity={0.7} />
         <Line 
           type="monotone" 
           dataKey="score" 
-          stroke="#4f46e5" 
+          stroke="var(--accent, #6ea43a)" // Use theme accent color, fallback to #6ea43a
           strokeWidth={2}
           activeDot={{ r: 8 }} 
           dot={{ r: 4 }}
@@ -100,7 +118,7 @@ const TrendChart = ({ data }: { data: ChartData[] }) => {
         <Line 
           type="monotone" 
           dataKey="manualScore" 
-          stroke="#10b981" // green
+          stroke="var(--accentDark, #263a1e)" // theme dark accent for manual
           strokeWidth={1.5}
           connectNulls
           activeDot={{ r: 6 }} 
@@ -110,7 +128,7 @@ const TrendChart = ({ data }: { data: ChartData[] }) => {
         <Line 
           type="monotone" 
           dataKey="chatScore" 
-          stroke="#3b82f6" // blue
+          stroke="var(--accentLight, #a3c167)" // theme light accent for AI
           strokeWidth={1.5}
           connectNulls
           activeDot={{ r: 6 }} 

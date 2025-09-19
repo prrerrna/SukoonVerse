@@ -131,7 +131,7 @@ const Onboard = () => {
                 </div>
                 <h3 className="text-2xl font-semibold mb-3 text-main">Angry? Try It</h3>
                 <p className="text-subtle mb-4">Release your frustration with a fun and calming anger release game. Transform negative energy into positive outcomes.</p>
-                <Link to="/mood" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
+                <Link to="/games" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
                   <span className="text-main">Try it now</span>
                   <ChevronRight size={18} className="ml-1" />
                 </Link>
@@ -143,7 +143,7 @@ const Onboard = () => {
                 </div>
                 <h3 className="text-2xl font-semibold mb-3 text-main">Light Them Up</h3>
                 <p className="text-subtle mb-4">Share your story anonymously and connect with others who care. Find comfort in knowing you're not alone in your experiences.</p>
-                <Link to="/resources" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
+                <Link to="/share" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
                   <span className="text-main">Try it now</span>
                   <ChevronRight size={18} className="ml-1" />
                 </Link>

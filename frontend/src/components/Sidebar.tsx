@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Home, MessageCircle, Zap, BookOpen, User, Settings, Users } from 'lucide-react';
 import React from 'react';
+import Logo from './Logo';
+
 
 type SidebarProps = {
   isOpen: boolean;
@@ -36,12 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Top Section */}
       <div>
         {/* Logo + Toggle Button */}
-        <div className="flex items-center justify-between p-4">
-          <img
-            src="/logo.png"
-            alt="SukoonVerse"
-            className="h-10 w-10 rounded-full border-2 border-accentDark"
-          />
+        <div id = "logo" className="flex items-center justify-between p-4">
+          <Logo size={44} />
           <button onClick={onToggle} className="p-1 rounded-full transition-colors hover:bg-accentDark/80">
             {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
           </button>

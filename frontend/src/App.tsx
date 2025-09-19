@@ -4,6 +4,7 @@ import Onboard from './pages/Onboard';
 import Chat from './pages/Chat';
 import Mood from './pages/Mood';
 import Resources from './pages/Resources';
+import Share from './pages/Share';
 import Notes from './pages/Notes';
 import Pulse from './pages/Pulse';
 import Profile from './pages/Profile';
@@ -22,6 +23,7 @@ const App = () => {
           <Route path="/notes" element={<Notes />} />
           <Route path="/mood" element={<Mood />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/share" element={<Share />} />
           <Route path="/pulse" element={<Pulse />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />

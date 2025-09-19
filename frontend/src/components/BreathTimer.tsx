@@ -31,7 +31,7 @@ const BreathTimer = () => {
     <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md">
       <h3 className="text-2xl font-semibold mb-4">60-Second Breathing Exercise</h3>
       <p className="text-xl mb-2">{instruction}</p>
-      <div className="text-6xl font-bold text-blue-500">{timer}</div>
+      <div className="text-6xl font-bold" style={{ color: 'var(--accent, #6ea43a)' }}>{timer}</div>
       <p className="text-sm text-gray-500 mt-4">Follow the 4-7-8 pattern.</p>
     </div>
   );

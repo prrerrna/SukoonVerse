@@ -8,6 +8,7 @@ import JournalEntry from '../components/JournalEntry';
 import { getLast7Days, addSnapshot, clearAll, isPersistenceEnabled, enablePersistence, disablePersistence } from '../utils/indexeddb';
 import { getMoodHistory } from '../lib/api';
 import BreathTimer from '../components/BreathTimer';
+import Sidebar from '../components/Sidebar';
 
 type DayPoint = { 
   day: string; 
@@ -30,6 +31,7 @@ const weekdayShort = (d: Date) => d.toLocaleDateString(undefined, { weekday: 'sh
 const formatISO = (d: Date) => d.toISOString().slice(0, 10);
 
 const Mood = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const { sessionId } = useSession();
   const [data, setData] = useState<DayPoint[]>([]);
   const [recent, setRecent] = useState<MoodSnapshot[]>([]);
@@ -135,26 +137,22 @@ const Mood = () => {
       const arr = map[iso];
       const manualArr = manualMap[iso];
       const chatArr = chatMap[iso];
-      
       // Calculate averages for each category
-      const avg = arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;
-      const manualAvg = manualArr.length ? Math.round((manualArr.reduce((a, b) => a + b, 0) / manualArr.length) * 10) / 10 : null;
-      const chatAvg = chatArr.length ? Math.round((chatArr.reduce((a, b) => a + b, 0) / chatArr.length) * 10) / 10 : null;
-      
+      const avg = arr.length ? Math.round((arr.reduce((a: number, b: number) => a + b, 0) / arr.length) * 10) / 10 : null;
+      const manualAvg = manualArr.length ? Math.round((manualArr.reduce((a: number, b: number) => a + b, 0) / manualArr.length) * 10) / 10 : null;
+      const chatAvg = chatArr.length ? Math.round((chatArr.reduce((a: number, b: number) => a + b, 0) / chatArr.length) * 10) / 10 : null;
       return { 
         day: weekdayShort(new Date(iso)), 
-        score: avg || 0,  // For main trend line, use 0 instead of null for empty days
-        manualScore: manualAvg,  // For manual entries, use null if no entries
-        chatScore: chatAvg,      // For chat entries, use null if no entries
+        score: avg || 0,
+        manualScore: manualAvg,
+        chatScore: chatAvg,
       };
     });
-
     setData(chart);
-
-    // Derived insights
+    // Fix: define todayScores before using
     const todayIso = days[days.length - 1];
-    const todayScores = map[todayIso] || [];
-    const todayAvgCalc = todayScores.length ? Math.round((todayScores.reduce((a, b) => a + b, 0) / todayScores.length) * 10) / 10 : null;
+    const todayScores: number[] = map[todayIso] || [];
+    const todayAvgCalc = todayScores.length ? Math.round((todayScores.reduce((a: number, b: number) => a + b, 0) / todayScores.length) * 10) / 10 : null;
     setTodayAvg(todayAvgCalc);
 
     // Weekly average over non-empty days
@@ -334,8 +332,8 @@ const Mood = () => {
           style={{ transition: 'stroke-dashoffset 600ms ease' }}
           transform="rotate(-90 80 80)"
         />
-        <text x="80" y="78" textAnchor="middle" className="fill-gray-900" style={{ fontSize: 28, fontWeight: 700 }}>{todayAvg ?? 0}</text>
-        <text x="80" y="100" textAnchor="middle" className="fill-gray-500" style={{ fontSize: 12 }}>{moodLabelFromScore(todayAvg)}</text>
+        <text x="80" y="78" textAnchor="middle" className="fill-white" style={{ fontSize: 28, fontWeight: 700 }}>{todayAvg ?? 0}</text>
+        <text x="80" y="100" textAnchor="middle" className="fill-white/80" style={{ fontSize: 12 }}>{moodLabelFromScore(todayAvg) === 'No data' ? <tspan className="fill-white">No data</tspan> : moodLabelFromScore(todayAvg)}</text>
       </svg>
     );
   }, [todayAvg]);
@@ -368,32 +366,45 @@ const Mood = () => {
   };
 
   return (
-    <div className="p-6 md:p-10 bg-slate-50 min-h-screen relative">
+    <div className="flex flex-col min-h-screen bg-[#e0ebd3]">
+      {/* Sidebar */}
+      <Sidebar isOpen={isOpen} onToggle={() => setIsOpen((o) => !o)} />
+
+      {/* Main Content with left margin to accommodate sidebar */}
+      <div
+        className="flex-1 w-full max-w-full px-2 md:px-6 lg:px-10 xl:px-16 pt-4 pr-2 md:pr-6 lg:pr-10 xl:pr-16"
+        style={{
+          marginLeft: isOpen ? '12rem' : '5rem',
+          minHeight: '120vh',
+          transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)',
+          willChange: 'margin-left',
+        }}
+      >
       <div ref={confettiRef} className="confetti-container pointer-events-none select-none"></div>
       {/* Hero header with dynamic gradient by todayAvg */}
       <div
-        className="rounded-2xl p-6 md:p-8 mb-8 shadow-lg text-white animate-fade-in"
+        className="rounded-3xl p-8 mb-8 shadow-lg text-white animate-fade-in"
         style={{
-          background: `linear-gradient(135deg, hsl(${scoreHue(todayAvg)}, 85%, 55%) 0%, hsl(${scoreHue(todayAvg) + 30}, 85%, 50%) 100%)`,
+          background: 'linear-gradient(135deg, #263a1e 0%, #6ea43a 60%, #a3c167 100%)',
         }}
       >
         <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-6">
           <div className="flex items-center gap-5">
             {gauge}
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">Your Mood Dashboard</h1>
-              <p className="opacity-95 mt-1">Hello, welcome back! Here's your mood summary.</p>
-              <div className="mt-3 text-sm opacity-90">
+              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-white">Your Mood Dashboard</h1>
+              <p className="text-white/90 mt-1">Hello, welcome back! Here's your mood summary.</p>
+              <div className="mt-3 text-sm text-white/80">
                 <span className="mr-3">Today: <strong>{todayAvg ?? '—'}</strong> / 10</span>
                 <span>Weekly: <strong>{weeklyAvg ?? '—'}</strong> / 10</span>
               </div>
             </div>
           </div>
           <div className="flex gap-3 mt-2">
-            <button onClick={() => setShowBreath(true)} className="px-4 py-2 rounded-lg bg-white/90 text-gray-900 hover:bg-white font-semibold shadow">
+            <button onClick={() => setShowBreath(true)} className="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform">
               60s Breathe
             </button>
-            <a href="#journal" className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold shadow">
+            <a href="#journal" className="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform">
               Add Journal
             </a>
           </div>
@@ -402,28 +413,28 @@ const Mood = () => {
 
       {/* Insights */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in">
+  <div className="bg-white/90 rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in transition-all duration-200 hover:scale-105 hover:-translate-y-1 hover:shadow-lg">
           <div className="bg-teal-100 p-3 rounded-full text-2xl">🔥</div>
           <div>
             <div className="text-sm text-gray-500">Streak</div>
             <div className="text-2xl font-bold text-gray-900">{streak} Days</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in" style={{animationDelay:'60ms'}}>
+  <div className="bg-white/90 rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in transition-all duration-200 hover:scale-105 hover:-translate-y-1 hover:shadow-lg" style={{animationDelay:'60ms'}}>
           <div className="bg-purple-100 p-3 rounded-full text-2xl">🗓️</div>
           <div>
             <div className="text-sm text-gray-500">Entries</div>
             <div className="text-2xl font-bold text-gray-900">{entryCount}</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in" style={{animationDelay:'120ms'}}>
+  <div className="bg-white/90 rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in transition-all duration-200 hover:scale-105 hover:-translate-y-1 hover:shadow-lg" style={{animationDelay:'120ms'}}>
           <div className="bg-green-100 p-3 rounded-full text-2xl">😊</div>
           <div>
             <div className="text-sm text-gray-500">Best Day</div>
             <div className="text-2xl font-bold text-gray-900">{bestDay ? `${bestDay.day}` : '—'}</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in" style={{animationDelay:'180ms'}}>
+  <div className="bg-white/90 rounded-2xl p-4 shadow flex items-center gap-3 animate-fade-in transition-all duration-200 hover:scale-105 hover:-translate-y-1 hover:shadow-lg" style={{animationDelay:'180ms'}}>
           <div className="bg-red-100 p-3 rounded-full text-2xl">😞</div>
           <div>
             <div className="text-sm text-gray-500">Toughest</div>
@@ -434,7 +445,7 @@ const Mood = () => {
 
   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Check-in & Journal */}
-  <div id="journal" className="lg:col-span-1 bg-white p-5 rounded-2xl shadow lg:sticky lg:top-4">
+  <div id="journal" className="lg:col-span-1 bg-white/90 p-6 rounded-3xl shadow-lg lg:sticky lg:top-4">
           <h2 className="text-xl font-semibold mb-3">How are you feeling?</h2>
           <MoodPicker value={selected} onChange={setSelected} />
           {/* Fine-tune slider inspired by sample */}
@@ -447,7 +458,7 @@ const Mood = () => {
               max={10}
               value={selected.score}
               onChange={(e) => setSelected({ ...selected, score: Number(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2 accent-teal-600"
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2 accent-accent/90"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>1</span>
@@ -467,7 +478,7 @@ const Mood = () => {
                   setPulseOptIn(v);
                   if (typeof window !== 'undefined') window.localStorage.setItem('pulseOptIn', v ? 'true' : 'false');
                 }}
-                className="h-4 w-4"
+                className="h-4 w-4 accent-accent"
               />
             </div>
             {pulseOptIn && (
@@ -516,7 +527,7 @@ const Mood = () => {
                 type="checkbox"
                 checked={isPersistent}
                 onChange={togglePersistence}
-                className="mr-2 h-4 w-4"
+                className="mr-2 h-4 w-4 accent-accent"
               />
               <label htmlFor="persistence-toggle" className="text-sm">
                 Remember entries between sessions
@@ -531,27 +542,28 @@ const Mood = () => {
                   setUseServerData(!useServerData);
                   setTimeout(load, 10);
                 }}
-                className="mr-2 h-4 w-4"
+                className="mr-2 h-4 w-4 accent-accent"
               />
               <label htmlFor="server-data-toggle" className="text-sm">
                 Include server-stored mood data {loadingServer && '(Loading...)'}
               </label>
             </div>
             <div className="flex gap-2 mt-1">
-              <button className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600" onClick={handleClear}>
-                Clear all entries
-              </button>
-              <button className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => setShowBreath(true)}>
+              
+              <button className="px-3 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform" onClick={() => setShowBreath(true)}>
                 Quick Breathe
               </button>
+                <button className="px-3 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform" onClick={handleClear}>
+                  Clear all entries
+                </button>
+              
             </div>
           </div>
         </div>
 
         {/* Middle & Right: Trend + Recent */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-5 rounded-2xl shadow transition-transform duration-300 hover:shadow-lg hover:-translate-y-0.5">
-            <h2 className="text-xl font-semibold mb-3">Your 7-Day Mood Trend</h2>
+          <div className="bg-white/90 p-6 rounded-3xl shadow-lg transition-transform duration-300 hover:shadow-lg hover:-translate-y-0.5">
             <TrendChart data={data.map(d => ({ day: d.day, score: d.score ?? null, manualScore: (d as any).manualScore ?? undefined, chatScore: (d as any).chatScore ?? undefined }))} />
             <div className="text-sm text-gray-600 mt-3">
               <p>The chart shows your average mood score for each day (scale of 1–10).</p>
@@ -560,25 +572,25 @@ const Mood = () => {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow transition-transform duration-300 hover:shadow-lg hover:-translate-y-0.5">
+          <div className="bg-white/90 p-6 rounded-3xl shadow-lg transition-transform duration-300 hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-medium">Recent entries</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-3 py-1 text-sm rounded ${filter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
+                  className={`px-3 py-1 text-sm rounded-lg font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform ${filter === 'all' ? 'bg-accent text-white' : 'bg-accent/20 text-main hover:bg-accent/40'}`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => setFilter('manual')}
-                  className={`px-3 py-1 text-sm rounded ${filter === 'manual' ? 'bg-green-600 text-white' : 'bg-green-100'}`}
+                  className={`px-3 py-1 text-sm rounded-lg font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform ${filter === 'manual' ? 'bg-accent text-white' : 'bg-accent/20 text-main hover:bg-accent/40'}`}
                 >
                   Manual
                 </button>
                 <button
                   onClick={() => setFilter('chat')}
-                  className={`px-3 py-1 text-sm rounded ${filter === 'chat' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+                  className={`px-3 py-1 text-sm rounded-lg font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform ${filter === 'chat' ? 'bg-accent text-white' : 'bg-accent/20 text-main hover:bg-accent/40'}`}
                 >
                   AI Detected
                 </button>
@@ -586,7 +598,7 @@ const Mood = () => {
             </div>
             <ul className="max-h-80 overflow-y-auto pr-1 scroll-smooth">
               {recent.map((r: MoodSnapshot, idx: number) => (
-                <li key={r.id || r.timestamp} className="p-3 border rounded-xl bg-gray-50/60 hover:bg-gray-50 transition-all duration-200" style={{animation: `fadeIn 0.3s ease ${idx * 30}ms both`}}>
+                <li key={r.id || r.timestamp} className="p-3 border rounded-xl bg-white/70 hover:bg-white transition-all duration-200" style={{animation: `fadeIn 0.3s ease ${idx * 30}ms both`}}>
                   <div className="flex items-start gap-3">
                     <div
                       className="w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center text-2xl"
@@ -617,28 +629,30 @@ const Mood = () => {
       {/* Simple modal for breathing exercise */}
       {showBreath && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-md relative">
-            <button
-              onClick={() => setShowBreath(false)}
-              className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-            <BreathTimer />
-          </div>
-
-          {/* Empty state for first-time users */}
-          {entryCount === 0 && (
-            <div className="mt-6 bg-white p-6 rounded-xl shadow border border-dashed border-gray-200 text-center animate-fade-in">
-              <h3 className="text-lg font-semibold mb-1">Add your first check‑in</h3>
-              <p className="text-gray-600 mb-3">Pick how you feel and jot a few words. Your trend starts building from today.</p>
-              <a href="#journal" className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Start now</a>
+          <div className="flex flex-col items-center w-full max-w-md">
+            <div className="bg-white/90 rounded-3xl shadow-xl p-6 w-full relative">
+              <button
+                onClick={() => setShowBreath(false)}
+                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <BreathTimer />
             </div>
-          )}
+            {/* Empty state for first-time users */}
+            {entryCount === 0 && (
+              <div className="mt-6 bg-white p-6 rounded-xl shadow border border-dashed border-gray-200 text-center animate-fade-in w-full">
+                <h3 className="text-lg font-semibold mb-1">Add your first check‑in</h3>
+                <p className="text-gray-600 mb-3">Pick how you feel and jot a few words. Your trend starts building from today.</p>
+                <a href="#journal" className="inline-block px-4 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform">Start now</a>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
+  </div>
   );
 };
 

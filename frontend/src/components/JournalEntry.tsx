@@ -19,8 +19,9 @@ export default function JournalEntry({ onSave }: { onSave: (journal: string) => 
         <div className="text-xs text-gray-500">
           {text.length > 0 ? `${text.length} characters` : 'Express yourself freely'}
         </div>
+        {/* Only keep the accent-themed Save Entry button */}
         <button
-          className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          className="px-3 py-2 rounded-lg bg-accent text-white hover:bg-accentDark font-semibold shadow transition-colors duration-200 transform hover:scale-105 transition-transform"
           onClick={async () => {
             await onSave(text);
             setText('');
