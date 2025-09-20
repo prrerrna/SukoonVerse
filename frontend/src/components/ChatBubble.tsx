@@ -1,24 +1,30 @@
-// ChatBubble.tsx: A component to display a single chat message.
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
-// This is a simple, reusable component for displaying a chat message.
-// It has no internal logic, just receives props and renders UI.
-// This follows the "no new functions" rule as it's a standard component definition.
-import { ReactNode } from 'react';
+interface ChatBubbleProps {
+  role: 'user' | 'model';
+  content: string;
+}
 
-const ChatBubble = ({ author, text }: { author: 'user' | 'bot'; text: ReactNode }) => {
-  const isUser = author === 'user';
-  // Use theme colors for user and bot
+const ChatBubble: React.FC<ChatBubbleProps> = ({ role, content }) => {
+  const isUser = role === 'user';
+  
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div
-        className={`rounded-xl px-5 py-3 max-w-xs lg:max-w-md shadow-sm ${
+        className={`rounded-lg px-4 py-3 max-w-xs lg:max-w-md shadow-sm ${
           isUser
-            ? 'bg-accent/60 text-main' // lighter accent green
-            : 'bg-white text-teal-900 border border-teal-100'
+            ? 'bg-blue-600 text-white' // user message style
+            : 'bg-white text-gray-800 border border-gray-100' // model message style
         }`}
         style={{ wordBreak: 'break-word' }}
       >
-        {text}
+        <div className="text-xs mb-1 font-medium opacity-80">
+          {isUser ? 'You' : 'Sukoon AI'}
+        </div>
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
       </div>
     </div>
   );

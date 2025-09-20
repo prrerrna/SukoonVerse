@@ -1,307 +1,411 @@
-// Chat.tsx: The main chat interface component where users interact with the AI.
-import { useState, useRef, useEffect } from 'react';
-import useSession from '../hooks/useSession';
-import { sendMessage, generateChatTitle } from '../lib/api';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ChatBubble from '../components/ChatBubble';
-import BreathTimer from '../components/BreathTimer';
-import { addSnapshot, addChatMessage, createChatSession, getActiveChatId, getChatMessages, setActiveChatId } from '../utils/indexeddb';
 import ChatToolbar from '../components/ChatToolbar';
+import { 
+  createNewChat, 
+  sendRemoteMessage, 
+  getRemoteMessages
+} from '../lib/api';
+import { 
+  createChatSession, 
+  getChatMessages, 
+  addChatMessage
+} from '../utils/indexeddb';
+import { onAuthChange, FirebaseUser } from '../lib/firebase';
 
-// This component handles the main chat functionality.
-// All state and logic are managed inline using React hooks.
+// Message interface for our app
+interface Message {
+  id: string;
+  role: 'user' | 'model';
+  content: string;
+  timestamp: number;
+  animate?: boolean;
+}
 
-const Chat = () => {
-  const { sessionId } = useSession();
-  const [messages, setMessages] = useState<{ id: string; author: 'user' | 'bot'; text: string; floating?: boolean }[]>([]);
+const Chat: React.FC = () => {
+  // Router
+  const navigate = useNavigate();
+  const { sessionId } = useParams<{ sessionId: string }>();
+
+  // UI State
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isCrisis, setIsCrisis] = useState(false);
-  const [activeChatId, setActiveChat] = useState<string | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [toolbarOpen, setToolbarOpen] = useState(false);
-  const [toolbarRefreshTick, setToolbarRefreshTick] = useState(0);
-  const [musicOn, setMusicOn] = useState(false); // music toggle
-  // For toggle animation
-  const handleMusicToggle = () => setMusicOn((prev) => !prev);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [user, setUser] = useState<FirebaseUser>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
+  // References
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [messages.length]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
+  // Listen for authentication changes
   useEffect(() => {
-    if (audioRef.current) {
-      if (musicOn) {
-        audioRef.current.play();
-      } else {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-  }, [musicOn]);
-
-  const clearFloating = (id: string) => {
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => (m.id === id ? { ...m, floating: false } : m)));
-    }, 650);
-  };
-
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputValue.trim() || !sessionId) return;
-  // Ensure we have a chat session AFTER sending the first message
-  let chatId = activeChatId || getActiveChatId();
-    const userId = `u_${Date.now()}`;
-    const userMessage = { id: userId, author: 'user' as const, text: inputValue, floating: true };
-    setMessages(prev => [...prev, userMessage]);
-    clearFloating(userId);
-    const textToSend = inputValue;
-    setInputValue('');
-  // show typing indicator immediately (even while creating session/title)
-  setIsTyping(true);
-    // If no session yet, generate title and create it now, then persist message
-    if (!chatId) {
-      let title: string | null = null;
-      try {
-        const { title: serverTitle } = await generateChatTitle(textToSend);
-        if (serverTitle && serverTitle.trim()) {
-          title = serverTitle.trim();
-        }
-      } catch {}
-      // Fallback: first 6 words
-      if (!title) {
-        const words = textToSend.trim().split(/\s+/).slice(0, 6);
-        const raw = words.join(' ');
-        // Basic title case
-        const small = new Set(['a','an','the','and','or','but','for','nor','on','at','to','from','by','of','in','with']);
-        const parts = raw.split(' ');
-        title = parts
-          .map((w, i) => {
-            const wl = w.toLowerCase();
-            if (i !== 0 && small.has(wl)) return wl;
-            return wl.charAt(0).toUpperCase() + wl.slice(1);
-          })
-          .join(' ');
-      }
-      const s = await createChatSession(title || 'New chat');
-      chatId = s.id;
-      setActiveChatId(chatId);
-      setActiveChat(chatId);
-      // poke toolbar to refresh list
-      setToolbarRefreshTick(t => t + 1);
-    }
-    // persist user message (now we definitely have chatId)
-    await addChatMessage({ sessionId: chatId as string, author: 'user', text: textToSend, timestamp: Date.now() });
-  try {
-  const response = await sendMessage({ session_id: sessionId, message: textToSend, lang_hint: 'en', chat_id: chatId });
-      const botId = `b_${Date.now()}`;
-      const botMessage = { id: botId, author: 'bot' as const, text: response.reply, floating: true };
-      setMessages(prev => [...prev, botMessage]);
-      clearFloating(botId);
-      setIsTyping(false);
-      // persist bot message
-  await addChatMessage({ sessionId: chatId as string, author: 'bot', text: response.reply, timestamp: Date.now() });
-      if (response.is_crisis) {
-        setIsCrisis(true);
-      } else {
-        setIsCrisis(false);
-      }
-      if (response.mood && typeof response.mood === 'object') {
-        const moodData = {
-          label: response.mood.label || 'neutral',
-          score: response.mood.score || 5,
-          journal: undefined,
-          source: 'chat' as const
-        };
-        await addSnapshot(moodData);
-      }
-    } catch (error) {
-      setIsTyping(false);
-      const errId = `e_${Date.now()}`;
-      const errorMessage = { id: errId, author: 'bot' as const, text: 'Sorry, something went wrong.', floating: true };
-      setMessages(prev => [...prev, errorMessage]);
-      clearFloating(errId);
-    }
-  };
-
-  // Load active session on mount (do not auto-create a session)
-  useEffect(() => {
-    (async () => {
-      const chatId = getActiveChatId();
-      setActiveChat(chatId);
-      if (chatId) {
-        const items = await getChatMessages(chatId);
-        const hydrated = items.map(m => ({ id: `${m.author}_${m.timestamp}`, author: m.author as 'user' | 'bot', text: m.text }));
-        setMessages(hydrated);
-      } else {
-        setMessages([]);
-      }
-    })();
+    const unsubscribe = onAuthChange(setUser);
+    return () => unsubscribe();
   }, []);
 
-  if (isCrisis) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-xl font-bold mb-4 text-red-600">Need immediate help?</h2>
-          <p className="mb-4">
-            If you're experiencing a mental health crisis or emergency, please reach out to one of these resources immediately:
-          </p>
-          <ul className="list-disc pl-5 mb-4">
-            <li className="mb-2">KIRAN National Mental Health Helpline: <a href="tel:18005990019" className="text-blue-600 underline">1800-599-0019</a></li>
-            <li className="mb-2">iCALL (TISS) Counselling Helpline: <a href="tel:9152987821" className="text-blue-600 underline">9152987821</a></li>
-            <li>Emergency Services (India): <a href="tel:112" className="text-blue-600 underline">112</a></li>
-          </ul>
-          <BreathTimer />
-          <div className="flex justify-end">
-            <button 
-              onClick={() => setIsCrisis(false)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              I understand
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Load messages when session ID changes
+  useEffect(() => {
+    const loadMessages = async () => {
+      // Clear messages when no session ID is present
+      if (!sessionId) {
+        setMessages([]);
+        setActiveChatId(null);
+        return;
+      }
+
+      setActiveChatId(sessionId);
+      
+      try {
+        if (user) {
+          // Load remote messages for authenticated users
+          const response = await getRemoteMessages(sessionId);
+          const data = await response.json();
+          
+          setMessages(data.map((msg: any) => ({
+            id: msg.id,
+            role: msg.author === 'user' ? 'user' : 'model',
+            content: msg.text,
+            timestamp: new Date(msg.timestamp).getTime()
+          })));
+        } else {
+          // Load local messages for guest users
+          const localMessages = await getChatMessages(sessionId);
+          
+          setMessages(localMessages.map(msg => ({
+            id: `${msg.sessionId}_${msg.timestamp}`,
+            role: msg.author === 'user' ? 'user' : 'model',
+            content: msg.text,
+            timestamp: msg.timestamp
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        // Navigate to /chat if we can't load the session
+        navigate('/chat', { replace: true });
+      }
+    };
+
+    loadMessages();
+  }, [sessionId, user, navigate]);
+
+  // Handle sending messages
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const message = inputValue.trim();
+    if (!message || isProcessing) return;
+    
+    setInputValue('');
+    setIsProcessing(true);
+    
+    // Create a unique ID for the user message
+    const userMessageId = `user_${Date.now()}`;
+    
+    // Add user message to the UI immediately
+    const userMessage: Message = {
+      id: userMessageId,
+      role: 'user',
+      content: message,
+      timestamp: Date.now(),
+      animate: true
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    
+    try {
+      if (user) {
+        // Authenticated flow
+        if (!sessionId) {
+          // First message in a new conversation
+          try {
+            // Create a new chat session with the first message
+            const response = await createNewChat(message);
+            const { sessionId: newSessionId, initialResponse } = await response.json();
+            
+            // Update URL to include the session ID
+            navigate(`/chat/${newSessionId}`, { replace: true });
+            setActiveChatId(newSessionId);
+            
+            // Add the bot response
+            const botMessage: Message = {
+              id: `model_${Date.now()}`,
+              role: 'model',
+              content: initialResponse,
+              timestamp: Date.now(),
+              animate: true
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+            
+            // Refresh the sidebar to show the new chat
+            setRefreshTrigger(prev => prev + 1);
+          } catch (error) {
+            console.error('Failed to create new chat:', error);
+            // Show error in UI
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `error_${Date.now()}`,
+                role: 'model',
+                content: 'Sorry, I encountered an error creating a new chat. Please try again.',
+                timestamp: Date.now(),
+                animate: true
+              }
+            ]);
+          }
+        } else {
+          // Subsequent message in existing conversation
+          try {
+            const response = await sendRemoteMessage(sessionId, message);
+            const data = await response.json();
+            
+            // Add the bot response
+            const botMessage: Message = {
+              id: `model_${Date.now()}`,
+              role: 'model',
+              content: data.reply || data.text,
+              timestamp: Date.now(),
+              animate: true
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+          } catch (error) {
+            console.error('Failed to send message:', error);
+            // Show error in UI
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `error_${Date.now()}`,
+                role: 'model',
+                content: 'Sorry, I encountered an error processing your message. Please try again.',
+                timestamp: Date.now(),
+                animate: true
+              }
+            ]);
+          }
+        }
+      } else {
+        // Guest flow using IndexedDB
+        if (!sessionId) {
+          // Create a new local session
+          const newSession = await createChatSession('New Chat');
+          
+          // Add user message to local storage
+          await addChatMessage({
+            sessionId: newSession.id,
+            author: 'user',
+            text: message,
+            timestamp: Date.now()
+          });
+          
+          // Navigate to the new session
+          navigate(`/chat/${newSession.id}`, { replace: true });
+          setActiveChatId(newSession.id);
+          
+          // Simulate a response for the guest user
+          setTimeout(() => {
+            const botMessage: Message = {
+              id: `model_${Date.now()}`,
+              role: 'model',
+              content: "Hello! I'm Sukoon AI. How can I help you today?",
+              timestamp: Date.now(),
+              animate: true
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+            
+            // Add bot message to local storage
+            addChatMessage({
+              sessionId: newSession.id,
+              author: 'bot',
+              text: botMessage.content,
+              timestamp: botMessage.timestamp
+            });
+            
+            // Refresh the sidebar
+            setRefreshTrigger(prev => prev + 1);
+          }, 1000);
+        } else {
+          // Add user message to local storage
+          await addChatMessage({
+            sessionId,
+            author: 'user',
+            text: message,
+            timestamp: Date.now()
+          });
+          
+          // Simulate a response for the guest user
+          setTimeout(() => {
+            const botMessage: Message = {
+              id: `model_${Date.now()}`,
+              role: 'model',
+              content: "I'm responding as a guest session. To get full AI responses, please log in.",
+              timestamp: Date.now(),
+              animate: true
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+            
+            // Add bot message to local storage
+            addChatMessage({
+              sessionId,
+              author: 'bot',
+              text: botMessage.content,
+              timestamp: botMessage.timestamp
+            });
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error in message handling:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle selecting a chat session
+  const handleSelectSession = async (id: string | null) => {
+    if (id) {
+      navigate(`/chat/${id}`);
+    } else {
+      navigate('/chat');
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Chat Toolbar styled like sidebar */}
-  <ChatToolbar isOpen={toolbarOpen} onToggle={() => setToolbarOpen(o => !o)} activeId={activeChatId} refreshToken={toolbarRefreshTick} onSelect={async (id) => {
-        setActiveChat(id || null);
-        if (id) {
-          setActiveChatId(id);
-          const items = await getChatMessages(id);
-          const hydrated = items.map(m => ({ id: `${m.author}_${m.timestamp}`, author: m.author as 'user' | 'bot', text: m.text }));
-          setMessages(hydrated);
-        } else {
-          setMessages([]);
-        }
-      }} />
-      {/* Calming Music Audio Element */}
-      <audio
-        ref={audioRef}
-        loop
-        preload="auto"
-        onError={() => setMusicOn(false)}
-        style={{ display: 'none' }}
+    <div className="h-screen flex bg-background">
+      {/* Sidebar */}
+      <ChatToolbar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        activeId={activeChatId}
+        onSelect={handleSelectSession}
+        refreshTrigger={refreshTrigger}
+      />
+
+      {/* Main Chat Area */}
+      <main 
+        className="flex-1 flex flex-col transition-all duration-200 ease-in-out"
+        style={{
+          marginLeft: sidebarOpen ? '16rem' : '4rem'
+        }}
       >
-        <source src="/sounds/calm-music-64526.mp3" type="audio/mp3" />
-        Your browser does not support the audio element.
-      </audio>
-
-      {/* Main Chat Content with left margin to accommodate sidebar */}
-  <div className={`flex-1 flex flex-col items-center pt-6 relative`} style={{ marginLeft: toolbarOpen ? '16rem' : '5rem', transition: 'margin-left 400ms cubic-bezier(.22,.9,.36,1)' }}>
-        {/* Calming Music Toggle Switch */}
-        <div className="absolute top-2 right-4 z-20 flex items-center">
-          {/* Music note icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-6 w-6 text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18V5l12-2v13" />
-            <circle cx="5" cy="19" r="3" />
-          </svg>
-          <button
-            onClick={handleMusicToggle}
-            className={`relative w-14 h-8 bg-border rounded-full transition-colors duration-300 focus:outline-none shadow-md`}
-            aria-label={musicOn ? 'Pause Calming Music' : 'Play Calming Music'}
-          >
-            <span
-              className={`absolute left-1 top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-300 ${musicOn ? 'translate-x-6' : ''}`}
-              style={{ willChange: 'transform' }}
-            >
-              {musicOn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" /><circle cx="5" cy="19" r="2" /></svg>
-              )}
-            </span>
-            {/* Track color change */}
-            <span
-              className={`absolute inset-0 rounded-full pointer-events-none transition-colors duration-300 ${musicOn ? 'bg-accent' : 'bg-border'}`}
-            />
-          </button>
-        </div>
-        {/* inject small keyframes for floating animation */}
-        <style>{`
-          @keyframes floatUp {
-            0% { transform: translateY(12px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-          }
-          .floating {
-            animation: floatUp 600ms cubic-bezier(.22,.9,.36,1) forwards;
-          }
-        `}</style>
-
-        <div className="w-full max-w-2xl flex flex-col flex-1 p-0 mb-4 relative min-h-0">
-          {/* Chat Area - messages scroll here only; pb-28 leaves space for the fixed input */}
-          <div
-            ref={containerRef}
-            className="flex-1 overflow-y-auto px-2 pb-28"
-            role="log"
-            aria-live="polite"
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={msg.floating ? 'floating' : undefined}
-                style={{ willChange: 'transform, opacity' }}
-              >
-                <ChatBubble author={msg.author} text={msg.text} />
-              </div>
-            ))}
-            {isTyping && (
-              <div className="floating" style={{ willChange: 'transform, opacity' }}>
-                <ChatBubble
-                  author="bot"
-                  text={
-                    <div className="flex items-center gap-1">
-                      <span className="sr-only">Assistant is typing</span>
-                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:-0.2s]"></span>
-                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:0s]"></span>
-                      <span className="inline-block w-2 h-2 bg-teal-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                    </div>
-                  }
-                />
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Fixed input wrapper — absolute at bottom of this chat column. Keep the form markup identical. */}
-          <div className="fixed left-0 right-0 bottom-0 px-4 py-3 bg-background z-10 pointer-events-none border-t border-border">
-            <div className="max-w-2xl mx-auto w-full pointer-events-auto">
-              <form onSubmit={handleSend} className="flex items-center mt-2">
-                <div className="flex items-center w-full bg-white rounded-full shadow border border-border">
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    className="flex-1 p-3 outline-none text-gray-700 bg-transparent"
-                    placeholder="Type your message..."
-                  />
-                  <button type="submit" className="p-3 text-accentDark hover:text-accentDark/80 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 19V5"></path>
-                      <path d="m5 12 7-7 7 7"></path>
-                    </svg>
-                  </button>
+        {/* Chat Messages */}
+        <div 
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {/* Welcome message when no messages exist */}
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <h1 className="text-2xl font-bold mb-2 text-accentDark">Welcome to Sukoon AI</h1>
+              <p className="text-textSubtle mb-6">
+                Your mental wellness companion. Ask me anything or share how you're feeling.
+              </p>
+              <div className="bg-surface p-4 rounded-lg shadow-md max-w-lg">
+                <p className="text-sm text-textSubtle">Try asking:</p>
+                <div className="mt-3 space-y-2">
+                  {["I'm feeling anxious about work", 
+                    "What are some breathing exercises for stress?", 
+                    "How can I improve my sleep?"].map((suggestion, i) => (
+                    <button
+                      key={i}
+                      className="block w-full text-left p-2 rounded-md hover:bg-border bg-background text-textMain text-sm"
+                      onClick={() => setInputValue(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
-              </form>
-              {/* Disclaimer line moved here so it remains visible below the fixed input */}
-              <div className="text-center text-xs text-gray-500 mt-2 max-w-4xl mx-auto">
-                Disclaimer: Not a clinician. For emergencies call your local helpline.
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Actual messages */}
+          {messages.map((message) => (
+            <div 
+              key={message.id} 
+              className={`${message.animate ? 'animate-fade-in-up' : ''}`}
+            >
+              <ChatBubble
+                role={message.role}
+                content={message.content}
+              />
+            </div>
+          ))}
+
+          {/* Loading indicator */}
+          {isProcessing && (
+            <div className="animate-fade-in-up">
+              <ChatBubble
+                role="model"
+                content="..."
+              />
+            </div>
+          )}
+
+          {/* Auto-scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
-  
-      </div>
-  </div>
+
+        {/* Message Input */}
+        <div className="border-t border-border p-4">
+          <form onSubmit={handleSendMessage} className="flex space-x-2">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1 border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              disabled={isProcessing}
+              ref={inputRef}
+            />
+            <button
+              type="submit"
+              className="bg-accent text-buttontext px-4 py-2 rounded-lg hover:bg-accentDark focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={!inputValue.trim() || isProcessing}
+            >
+              Send
+            </button>
+          </form>
+          
+          {/* Disclaimer */}
+          <p className="text-xs text-textSubtle text-center mt-2">
+            Disclaimer: I'm an AI assistant, not a licensed mental health professional.
+            For emergencies, please contact your local crisis helpline.
+          </p>
+        </div>
+      </main>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fadeInUp 0.3s ease forwards;
+        }
+      `}</style>
+    </div>
   );
 };
 

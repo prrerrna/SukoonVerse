@@ -1,4 +1,5 @@
 // api.ts: A library for making API calls to the backend.
+// Includes both public and authenticated API endpoints.
 
 // This file centralizes all communication with the backend API.
 // It uses the browser's fetch API to make HTTP requests.
@@ -79,12 +80,63 @@ export const analyzeMood = async (message: string) => {
   return response.json();
 };
 
-// Function to get mood history from backend
+// Function to get mood history from backend (session-based)
 export const getMoodHistory = async (days: number = 7) => {
   const response = await fetch(`${API_BASE_URL}/mood/history?days=${days}`, { credentials: 'include' });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
+  return response.json();
+};
+
+// Cloud-based mood API functions that use Firestore
+
+// Save a mood entry to Firestore (authenticated)
+export const saveMoodToCloud = async (payload: { 
+  label: string;
+  score: number;
+  journal?: string;
+  source?: 'manual' | 'chat';
+  themes?: string[];
+}) => {
+  const response = await authenticatedRequest('/mood/cloud', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+};
+
+// Get mood history from Firestore (authenticated)
+export const getCloudMoodHistory = async (days: number = 7, limit: number = 100) => {
+  const response = await authenticatedRequest(`/mood/cloud/history?days=${days}&limit=${limit}`);
+  return response.json();
+};
+
+// Update an existing mood entry
+export const updateMoodEntry = async (entryId: string, updates: {
+  label?: string;
+  score?: number;
+  journal?: string;
+  themes?: string[];
+}) => {
+  const response = await authenticatedRequest(`/mood/cloud/${entryId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
+  return response.json();
+};
+
+// Delete a mood entry
+export const deleteMoodEntry = async (entryId: string) => {
+  const response = await authenticatedRequest(`/mood/cloud/${entryId}`, {
+    method: 'DELETE'
+  });
+  return response.json();
+};
+
+// Get mood statistics
+export const getMoodStats = async (days: number = 7) => {
+  const response = await authenticatedRequest(`/mood/cloud/stats?days=${days}`);
   return response.json();
 };
 
@@ -132,4 +184,163 @@ export const sendPulseFeedback = async (payload: { session_id: string; region: s
   });
   if (!res.ok) throw new Error('Failed to send feedback');
   return res.json();
+};
+
+// ===============================
+// Firebase Authentication API
+// ===============================
+import { getAuth } from 'firebase/auth';
+
+/**
+ * Makes an authenticated request to the backend API
+ * Automatically adds the Firebase ID token to the request headers
+ */
+export async function authenticatedRequest(
+  endpoint: string,
+  options: RequestInit = {}
+) {
+  try {
+    // Get current Firebase user
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      throw new Error('User is not authenticated');
+    }
+
+    // Get ID token
+    const token = await user.getIdToken();
+
+    // Make the authenticated request
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API error: ${response.status}`);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Authentication request failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * User API functions
+ */
+
+// Get the current user's profile
+export async function getUserProfile() {
+  const response = await authenticatedRequest('/user/profile');
+  return response.json();
+}
+
+// Update the user's profile
+export async function updateUserProfile(profile: {
+  name?: string;
+  mobile?: string;
+  preferredName?: string;
+  region?: string;
+  language?: string;
+  bio?: string;
+}) {
+  const response = await authenticatedRequest('/user/profile', {
+    method: 'POST',
+    body: JSON.stringify({ profile }),
+  });
+  return response.json();
+}
+
+// Register a new user after Firebase authentication
+export async function registerUser(profile: {
+  name?: string;
+  mobile?: string;
+  preferredName?: string;
+  region?: string;
+  language?: string;
+}, sessionId?: string) {
+  const response = await authenticatedRequest('/user/register', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      profile,
+      session_id: sessionId 
+    }),
+  });
+  return response.json();
+}
+
+// ===============================
+// Chat History API
+// ===============================
+
+/**
+ * Create a new chat with the first message
+ * This combines creating a session and sending the first message in one call
+ * The backend will generate a title automatically based on the first message
+ * 
+ * @param message The first message to send in the chat
+ * @returns Promise with sessionId, title, and initialResponse
+ */
+export const createNewChat = async (message: string) => {
+  return await authenticatedRequest('/chat/new', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+};
+
+/**
+ * Create a new remote chat session
+ * @param title Title of the chat session
+ */
+export const createRemoteChatSession = async (title: string) => {
+    return await authenticatedRequest('/history/session', {
+        method: 'POST',
+        body: JSON.stringify({ title }),
+    });
+};
+
+/**
+ * Get all remote chat sessions for the user
+ */
+export const getRemoteChatSessions = async () => {
+    return await authenticatedRequest('/history/sessions');
+};
+
+/**
+ * Get messages for a specific remote chat session
+ * @param sessionId ID of the chat session
+ */
+export const getRemoteMessages = async (sessionId: string) => {
+    return await authenticatedRequest(`/history/messages/${sessionId}`);
+};
+
+/**
+ * Send a message to a specific remote chat session
+ * @param sessionId ID of the chat session
+ * @param message The message content
+ */
+export const sendRemoteMessage = async (sessionId: string, message: string) => {
+    return await authenticatedRequest(`/chat/${sessionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+    });
+};
+
+/**
+ * Delete a specific remote chat session
+ * @param sessionId ID of the chat session to delete
+ */
+export const deleteRemoteChatSession = async (sessionId: string) => {
+    return await authenticatedRequest(`/history/sessions/${sessionId}`, {
+        method: 'DELETE'
+    });
 };

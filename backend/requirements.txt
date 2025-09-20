@@ -5,4 +5,5 @@ python-dotenv
 gunicorn
 requests
 google-generativeai
+firebase-admin
 

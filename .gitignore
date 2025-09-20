@@ -7,6 +7,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env*
 !frontend/.env.example
+Data
+tools
 
 # Python / Backend
 backend/venv/
@@ -17,6 +19,9 @@ backend/**/__pycache__/
 *.pyd
 backend/.env*
 !backend/.env.example
+
+# Firebase service account key
+backend/serviceAccountKey.json
 
 # IDE / OS specific
 .vscode/

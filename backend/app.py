@@ -15,6 +15,9 @@ from app.routes.mood import mood_bp
 from app.routes.resources import resources_bp
 from app.routes.flag import flag_bp
 from app.routes.pulse import pulse_bp
+from app.routes.user import user_bp
+from app.routes.history import history_bp  # New import for history blueprint
+from app.db import initialize_firebase
 
 # Flask app initialization
 app = Flask(__name__)
@@ -27,6 +30,9 @@ app.config['SESSION_PERMANENT'] = True
 
 # In a real app, you'd want to restrict this more carefully
 CORS(app, supports_credentials=True) 
+
+# Initialize Firebase Admin SDK
+initialize_firebase()
 
 # Generate a single server-run session id that lasts until the backend restarts
 SERVER_RUN_SESSION_ID = os.environ.get('SERVER_RUN_SESSION_ID') or str(uuid4())
@@ -42,6 +48,8 @@ app.register_blueprint(mood_bp, url_prefix='/api')
 app.register_blueprint(resources_bp, url_prefix='/api')
 app.register_blueprint(flag_bp, url_prefix='/api')
 app.register_blueprint(pulse_bp, url_prefix='/api')
+app.register_blueprint(user_bp, url_prefix='/api')
+app.register_blueprint(history_bp, url_prefix='/api')  # Registering the new history blueprint
 
 @app.route('/')
 def index():

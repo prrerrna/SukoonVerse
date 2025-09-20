@@ -1,175 +1,333 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Trash2, Pencil, MessageSquare, Home, Users, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ChatSession, deleteChatSession, listChatSessions, renameChatSession, setActiveChatId, getActiveChatId } from '../utils/indexeddb';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Pencil, ChevronLeft, ChevronRight, Home, Activity, Heart, LogOut } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import { ChatSession, deleteChatSession, listChatSessions, renameChatSession } from '../utils/indexeddb';
+import { getRemoteChatSessions } from '../lib/api';
+import logo from '../images/logo.png';
 
-type ChatToolbarProps = {
-  onSelect: (id: string) => void;
+interface ChatToolbarProps {
+  onSelect: (id: string | null) => void;
   activeId: string | null;
   isOpen: boolean;
   onToggle: () => void;
-  refreshToken?: number;
-};
+  refreshTrigger?: number;
+}
 
-const ChatToolbar: React.FC<ChatToolbarProps> = ({ onSelect, activeId, isOpen, onToggle, refreshToken }) => {
+const ChatToolbar: React.FC<ChatToolbarProps> = ({ 
+  onSelect, 
+  activeId, 
+  isOpen, 
+  onToggle,
+  refreshTrigger = 0
+}) => {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
-    setLoading(true);
-    const s = await listChatSessions();
-    setSessions(s);
-    setLoading(false);
+  // Check if user is logged in
+  const isLoggedIn = () => {
+    const auth = getAuth();
+    return !!auth.currentUser;
   };
 
+  // Load sessions based on authentication status
+  const loadSessions = async () => {
+    setLoading(true);
+    
+    try {
+      if (isLoggedIn()) {
+        // Load remote sessions from Firebase if logged in
+        const response = await getRemoteChatSessions();
+        const data = await response.json();
+        
+        // Map the remote sessions to match our ChatSession type
+        const remoteSessions = data.map((session: any) => ({
+          id: session.id,
+          title: session.title || 'Untitled Chat',
+          createdAt: session.createdAt ? new Date(session.createdAt).getTime() : Date.now(),
+          updatedAt: session.updatedAt ? new Date(session.updatedAt).getTime() : Date.now()
+        }));
+        
+        setSessions(remoteSessions);
+      } else {
+        // Load local sessions from IndexedDB if not logged in
+        const localSessions = await listChatSessions();
+        setSessions(localSessions);
+      }
+    } catch (err) {
+      console.error('Failed to load sessions', err);
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load of sessions
   useEffect(() => {
-    refresh();
+    loadSessions();
   }, []);
 
+  // Refresh when triggered externally (e.g., after creating a new session)
   useEffect(() => {
-    // External signal (e.g., after creating a session elsewhere)
-    if (typeof refreshToken !== 'undefined') {
-      refresh();
+    if (refreshTrigger > 0) {
+      loadSessions();
     }
-  }, [refreshToken]);
+  }, [refreshTrigger]);
 
-  const handleNew = async () => {
-    // Start a fresh chat without creating a session yet; session will be created after first message
-    setActiveChatId('');
-    onSelect('');
+  // Handle creating a new chat
+  const handleNewChat = () => {
+    navigate('/chat');
+    onSelect(null);
   };
 
+  // Handle renaming a chat
   const handleRename = async (id: string) => {
-    const current = sessions.find(x => x.id === id);
-    const title = prompt('Rename chat', current?.title || '');
-    if (title !== null) {
-      await renameChatSession(id, title.trim());
-      await refresh();
+    const session = sessions.find(s => s.id === id);
+    if (!session) return;
+    
+    const newTitle = prompt('Rename chat', session.title || 'Untitled');
+    if (!newTitle) return;
+    
+    if (isLoggedIn()) {
+      // For remote sessions, we would need to implement this
+      alert('Renaming remote sessions is not implemented yet');
+    } else {
+      await renameChatSession(id, newTitle);
     }
+    
+    await loadSessions();
   };
 
+  // Handle deleting a chat
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this chat?')) {
+    if (!confirm('Are you sure you want to delete this chat?')) return;
+    
+    if (isLoggedIn()) {
+      // For remote sessions, we would need to implement this
+      alert('Deleting remote sessions is not implemented yet');
+    } else {
       await deleteChatSession(id);
-      await refresh();
-      const active = getActiveChatId();
-      if (active === id) {
-        setActiveChatId('');
-        onSelect('');
+      if (activeId === id) {
+        navigate('/chat');
+        onSelect(null);
       }
     }
+    
+    await loadSessions();
   };
 
   return (
-    <div
-      className={`fixed left-0 top-0 h-full bg-gradient-to-b from-accentDark to-accent text-white flex flex-col justify-between z-20`}
-      style={{
-        width: isOpen ? '16rem' : '5rem',
-        transition: 'width 400ms cubic-bezier(.22,.9,.36,1)',
-        willChange: 'width',
-      }}
+    <aside
+      className={`fixed left-0 top-0 h-full bg-gradient-to-b from-accentDark to-accent text-white flex flex-col z-20 transition-all duration-300 shadow-xl ${
+        isOpen ? 'w-64' : 'w-16'
+      }`}
     >
-      {/* Top */}
-      <div className="flex flex-col min-h-0">
-        <div className="flex items-center justify-between p-4">
-          <img src="/logo.png" alt="SukoonVerse" className="h-10 w-10 rounded-full border-2 border-accentDark" />
-          <button
-            onClick={onToggle}
-            aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            className="hover:bg-accentDark/80 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-accent"
-          >
-            {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
-          </button>
-        </div>
-        <div className="px-3">
-          <button
-            onClick={handleNew}
-            className={`flex items-center justify-center gap-2 text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-accent transition-all duration-300 ${isOpen ? 'px-2 py-1 rounded-md w-full' : 'p-2 rounded-full w-auto'} hover:bg-white/20`}
-            style={{ minWidth: isOpen ? '100%' : 'auto' }}
-          >
-            <Plus size={18} />
-            {isOpen && (
-              <span style={{ opacity: 1, width: 'auto', transition: 'opacity 300ms' }}>New chat</span>
-            )}
-          </button>
-          {isOpen && (
-            <div className="mt-4 mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/80 select-none">Chats</div>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10 backdrop-blur-sm">
+          {isOpen ? (
+            <>
+              <div className="flex items-center">
+                <img 
+                  src={logo}
+                  alt="SukoonVerse" 
+                  className="h-8 w-8 mr-2"
+                />
+                <span className="font-medium">SukoonVerse</span>
+              </div>
+              <button 
+                onClick={onToggle} 
+                className="p-1 rounded-full transition-colors hover:bg-accentDark/80"
+                title="Collapse sidebar"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            </>
+          ) : (
+            <div className="w-full flex justify-between items-center">
+              <div className="w-8 h-8 flex-shrink-0">
+                <img 
+                  src={logo}
+                  alt="SukoonVerse" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <button 
+                onClick={onToggle} 
+                className="p-1 rounded-full transition-colors hover:bg-accentDark/80"
+                title="Expand sidebar"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
           )}
         </div>
-        {/* Sessions list - only visible when sidebar is open */}
-        {isOpen && (
-          <div className="px-2 overflow-hidden flex-1 min-h-0">
-            {loading && <div className="text-white/80 text-sm px-2">Loading…</div>}
-            {!loading && sessions.length === 0 && (
-              <div className="text-white/80 text-sm px-2">No chats yet. Create one.</div>
-            )}
-            {!loading && sessions.map(s => (
-              <div
-                key={s.id}
-                className={`group flex items-center justify-between gap-2 px-2 py-2 rounded-md cursor-pointer hover:bg-white/10`}
-              >
-                <button
-                  type="button"
-                  onClick={() => { setActiveChatId(s.id); onSelect(s.id); }}
-                  className="flex items-center flex-1 text-left focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-accent rounded"
-                >
-                  <span
-                    className="text-sm truncate flex-1"
-                    style={{
-                      opacity: isOpen ? 1 : 0,
-                      transform: isOpen ? 'translateX(0)' : 'translateX(-12px)',
-                      transition: 'opacity 250ms, transform 250ms',
-                      display: 'inline-block',
-                      width: isOpen ? 'auto' : 0,
-                    }}
-                  >{s.title}</span>
-                </button>
-                <div
-                  className={`flex items-center gap-1 transition-opacity ${isOpen ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}
-                  style={{ transition: 'opacity 200ms' }}
-                >
-                  <button
-                    onClick={() => handleRename(s.id)}
-                    className="text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-accent rounded"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(s.id)}
-                    className="text-red-300 hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-accent rounded"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Bottom quick links */}
-      <div className="flex flex-col gap-3 p-4">
-  <Link to="/" className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors hover:bg-accentDark/80 ${!isOpen ? 'justify-center' : ''}`}>
-          <Home size={22} className="text-white flex-none" style={{ width: 22, height: 22 }} />
-          <span style={{ opacity: isOpen ? 1 : 0, transition: 'opacity 250ms', width: isOpen ? 'auto' : 0 }}>
-            Home
-          </span>
-        </Link>
-  <Link to="/pulse" className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors hover:bg-accentDark/80 ${!isOpen ? 'justify-center' : ''}`}>
-          <Users size={22} className="text-white flex-none" style={{ width: 22, height: 22 }} />
-          <span style={{ opacity: isOpen ? 1 : 0, transition: 'opacity 250ms', width: isOpen ? 'auto' : 0 }}>
-            Pulse
-          </span>
-        </Link>
-  <Link to="/mood" className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors hover:bg-accentDark/80 ${!isOpen ? 'justify-center' : ''}`}>
-          <Zap size={22} className="text-white flex-none" style={{ width: 22, height: 22 }} />
-          <span style={{ opacity: isOpen ? 1 : 0, transition: 'opacity 250ms', width: isOpen ? 'auto' : 0 }}>
-            Mood
-          </span>
-        </Link>
-  {/* Notes link removed per request */}
+        {/* Actions */}
+        <div className="p-2 space-y-1">
+          <button
+            onClick={handleNewChat}
+            className={`flex items-center gap-2 w-full p-2 rounded-md hover:bg-accentDark/30 transition-colors ${
+              !isOpen ? 'justify-center' : ''
+            }`}
+            title="New Chat"
+          >
+            <Plus size={18} className="text-white" />
+            {isOpen && <span className="font-medium">New Chat</span>}
+          </button>
+        </div>
+        
+        {/* Chats List */}
+        <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+          {isOpen ? (
+            <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2 px-2">
+              {isLoggedIn() ? 'CLOUD CHATS' : 'LOCAL CHATS'}
+            </h3>
+          ) : (
+            <div className="flex justify-center py-1">
+              <div className="w-8 border-b border-white/10"></div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className={`text-white text-sm p-2 ${!isOpen ? 'text-center' : ''}`}>
+              {isOpen ? 'Loading...' : '...'}
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className={`text-white text-sm p-2 ${!isOpen ? 'text-center' : ''}`}>
+              {isOpen ? 'No chats yet' : '—'}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {sessions.map(session => (
+                <div 
+                  key={session.id}
+                  className={`group flex items-center justify-between rounded-md p-2 cursor-pointer transition-all duration-200 ${
+                    activeId === session.id 
+                      ? 'bg-accentDark/30 text-white' 
+                      : 'hover:bg-accentDark/30'
+                  }`}
+                  onClick={() => onSelect(session.id)}
+                  title={!isOpen ? (session.title || 'Untitled') : ''}
+                >
+                  <div className={`flex-1 min-w-0 ${!isOpen ? 'text-center' : ''}`}>
+                    <span className={`block text-sm truncate ${activeId === session.id ? 'font-medium' : ''}`}>
+                      {isOpen 
+                        ? (session.title || 'Untitled') 
+                        : (session.title?.[0]?.toUpperCase() || 'U')}
+                    </span>
+                    {isOpen && (
+                      <span className="text-xs text-white/70">
+                        {new Date(session.createdAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {isOpen && (
+                    <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleRename(session.id);
+                        }}
+                        className="p-1 rounded-full hover:bg-accentDark/30 transition-colors"
+                        title="Rename chat"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDelete(session.id);
+                        }}
+                        className="p-1 rounded-full hover:bg-accentDark/30 transition-colors"
+                        title="Delete chat"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Navigation Icons */}
+        <div className="p-2 border-t border-white/10 backdrop-blur-sm">
+          <div className={`flex ${isOpen ? 'justify-around' : 'flex-col space-y-3 items-center pt-2'}`}>
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
+              title="Home"
+            >
+              <Home size={20} />
+            </button>
+            <button
+              onClick={() => navigate('/pulse')}
+              className="p-2 hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
+              title="Pulse"
+            >
+              <Activity size={20} />
+            </button>
+            <button
+              onClick={() => navigate('/mood')}
+              className="p-2 hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
+              title="Mood"
+            >
+              <Heart size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className={`p-4 border-t border-white/10 backdrop-blur-sm ${!isOpen ? 'mt-auto' : ''}`}>
+          {isOpen && (
+            <>
+              <div className="text-sm mb-2">
+                {isLoggedIn() ? (
+                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accentDark/30">
+                    <span className="font-medium">
+                      {getAuth().currentUser?.displayName || 'Logged In'}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        await getAuth().signOut();
+                        window.location.href = '/login';
+                      }}
+                      className="p-1 hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
+                      title="Sign Out"
+                    >
+                      <LogOut size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="w-full p-2 rounded-lg text-white hover:bg-accentDark/30 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-white/70 text-center mt-2">
+                {isLoggedIn() ? 'Chats are stored in the cloud' : 'Chats are stored locally'}
+              </div>
+            </>
+          )}
+          {!isOpen && (
+            <button 
+              className="p-2 w-full flex justify-center hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
+              onClick={() => isLoggedIn() ? getAuth().signOut() : navigate('/login')}
+              title={isLoggedIn() ? "Sign Out" : "Sign In"}
+            >
+              <LogOut size={18} className={isLoggedIn() ? "" : "rotate-180"} />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

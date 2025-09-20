@@ -1,129 +1,329 @@
-import { useEffect, useMemo, useState } from 'react';
-import { getPulseSummary, sendPulseFeedback } from '../lib/api';
-import useSession from '../hooks/useSession';
-import BreathTimer from '../components/BreathTimer';
+// Pulse.tsx: A page for checking in with your emotional well-being.
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Sidebar from '../components/Sidebar';
+import { openDB } from 'idb';
+import { v4 as uuidv4 } from 'uuid';
+import { Heart, Clock, Edit3, AlertCircle, Check, Frown, Meh, Smile, SmilePlus, AlertTriangle } from 'lucide-react';
 
-type Action = { id: string; title: string; description: string; time_estimate: string; type: string };
+// Define types for our Pulse entry
+interface PulseEntry {
+  id: string;
+  mood: number; // 1-5 scale
+  note?: string;
+  timestamp: number;
+}
+
+// Component for the pulse mood picker
+const MoodSelector = ({ selectedMood, onSelectMood }: { 
+  selectedMood: number | null;
+  onSelectMood: (mood: number) => void;
+}) => {
+  // Define the moods with their emojis and labels
+  const moods = [
+    { value: 1, emoji: <Frown size={32} />, label: "Awful" },
+    { value: 2, emoji: <AlertTriangle size={32} />, label: "Bad" },
+    { value: 3, emoji: <Meh size={32} />, label: "Okay" },
+    { value: 4, emoji: <Smile size={32} />, label: "Good" },
+    { value: 5, emoji: <SmilePlus size={32} />, label: "Great" },
+  ];
+
+  return (
+    <div className="flex justify-center my-8">
+      <div className="flex space-x-4 md:space-x-8">
+        {moods.map((mood) => (
+          <motion.button
+            key={mood.value}
+            className={`flex flex-col items-center p-4 rounded-lg transition-colors ${
+              selectedMood === mood.value 
+                ? 'bg-accent text-white shadow-lg' 
+                : 'bg-white hover:bg-gray-50'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onSelectMood(mood.value)}
+          >
+            <div className="mb-2">
+              {mood.emoji}
+            </div>
+            <span className="text-sm font-medium">{mood.label}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Format a timestamp into a readable date
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+// Get mood emoji based on the mood value
+const getMoodEmoji = (mood: number) => {
+  switch (mood) {
+    case 1: return <Frown size={20} />;
+    case 2: return <AlertTriangle size={20} />;
+    case 3: return <Meh size={20} />;
+    case 4: return <Smile size={20} />;
+    case 5: return <SmilePlus size={20} />;
+    default: return <Meh size={20} />;
+  }
+};
 
 const Pulse = () => {
-  const { sessionId } = useSession();
-  const [region, setRegion] = useState('MyCampus');
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
-  const [showBreath, setShowBreath] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [selectedMood, setSelectedMood] = useState<number | null>(null);
+  const [note, setNote] = useState('');
+  const [pulseEntries, setPulseEntries] = useState<PulseEntry[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
+  // Load pulse entries from IndexedDB on component mount
+  useEffect(() => {
+    const loadPulseEntries = async () => {
+      try {
+        const db = await openDB('sakhi-journal', 2);
+        
+        // Check if 'pulse-entries' store exists
+        if (!db.objectStoreNames.contains('pulse-entries')) {
+          // Close current connection
+          db.close();
+          // Upgrade database to include pulse-entries store
+          const updatedDb = await openDB('sakhi-journal', 3, {
+            upgrade(db, oldVersion, newVersion) {
+              if (oldVersion < 3) {
+                const store = db.createObjectStore('pulse-entries', {
+                  keyPath: 'id'
+                });
+                store.createIndex('timestamp', 'timestamp');
+              }
+            }
+          });
+          updatedDb.close();
+        }
+        
+        const newDb = await openDB('sakhi-journal', 3);
+        // Get all entries and sort by timestamp (newest first)
+        const entries = await newDb.getAll('pulse-entries');
+        setPulseEntries(entries.sort((a, b) => b.timestamp - a.timestamp));
+        newDb.close();
+      } catch (error) {
+        console.error('Error loading pulse entries:', error);
+      }
+    };
+
+    loadPulseEntries();
+  }, []);
+
+  // Handle mood selection
+  const handleMoodSelect = (mood: number) => {
+    setSelectedMood(mood);
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (selectedMood === null) return;
+    
+    setIsSubmitting(true);
+    
     try {
-      const d = await getPulseSummary(region);
-      setData(d);
+      const newEntry: PulseEntry = {
+        id: uuidv4(),
+        mood: selectedMood,
+        note: note.trim() || undefined,
+        timestamp: Date.now()
+      };
+      
+      const db = await openDB('sakhi-journal', 3);
+      await db.add('pulse-entries', newEntry);
+      db.close();
+      
+      // Update UI with the new entry
+      setPulseEntries(prev => [newEntry, ...prev]);
+      
+      // Reset form
+      setSelectedMood(null);
+      setNote('');
+      
+      // Show success message
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error saving pulse entry:', error);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [region]);
-
-  const pulse = Number(data?.pulse_score || 0);
-  const hue = useMemo(() => {
-    const s = Math.max(0, Math.min(10, pulse));
-    return Math.round(((s - 1) / 9) * 120);
-  }, [pulse]);
-
   return (
-    <div className="p-6 md:p-10 bg-slate-50 min-h-screen">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-teal-800">Sukoon Pulse</h1>
-          <div className="flex items-center gap-2">
-            <input value={region} onChange={(e)=>setRegion(e.target.value)} className="border rounded px-3 py-1" aria-label="region" />
-            <button onClick={load} className="px-3 py-1 bg-teal-600 text-white rounded">Refresh</button>
-          </div>
-        </div>
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)} />
+      
+      {/* Main Content */}
+      <motion.div 
+        className="flex-1 overflow-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-4xl mx-auto py-8 px-4 md:px-8">
+          {/* Header */}
+          <header className="mb-6">
+            <motion.h1 
+              className="text-3xl font-bold mb-2"
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              How is your pulse today?
+            </motion.h1>
+            <motion.p 
+              className="text-gray-600"
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Take a moment to check in with yourself. It's a simple step towards understanding your emotional well-being.
+            </motion.p>
+          </header>
 
-        {/* Gauge */}
-        <div className="bg-white rounded-2xl p-5 shadow mb-6">
-          <div className="flex items-center gap-5">
-            <svg viewBox="0 0 160 160" className="w-32 h-32">
-              <defs>
-                <linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor={`hsl(${hue}, 90%, 60%)`} />
-                  <stop offset="100%" stopColor={`hsl(${hue+30}, 90%, 55%)`} />
-                </linearGradient>
-              </defs>
-              <circle cx="80" cy="80" r={60} stroke="#e5e7eb" strokeWidth={12} fill="none" />
-              <circle cx="80" cy="80" r={60} stroke="url(#pg)" strokeWidth={12} fill="none" strokeLinecap="round"
-                strokeDasharray={2*Math.PI*60} strokeDashoffset={(2*Math.PI*60)*(1-(pulse/10||0))} transform="rotate(-90 80 80)" />
-              <text x="80" y="78" textAnchor="middle" className="fill-gray-900" style={{ fontSize: 24, fontWeight: 700 }}>{pulse.toFixed(1)}</text>
-              <text x="80" y="100" textAnchor="middle" className="fill-gray-500" style={{ fontSize: 12 }}>{data?.trend || 'flat'}</text>
-            </svg>
-            <div>
-              <div className="text-gray-600 text-sm">Region</div>
-              <div className="text-2xl font-semibold">{data?.region || region}</div>
-              <div className="text-sm text-gray-500">Reports: {data?.counts || 0} {data?.cached ? '(cached)' : ''}</div>
+          {/* Pulse Check-in Card */}
+          <motion.div 
+            className="bg-white rounded-xl shadow-md p-6 mb-8"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Heart className="mr-2 text-accent" size={20} />
+              Pulse Check-in
+            </h2>
+            
+            {/* Mood Selector */}
+            <MoodSelector selectedMood={selectedMood} onSelectMood={handleMoodSelect} />
+            
+            {/* Note Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <Edit3 className="mr-2" size={16} /> 
+                Add a note (optional)
+              </label>
+              <textarea
+                className="w-full p-3 border rounded-lg focus:ring focus:ring-accent/20 focus:outline-none"
+                rows={4}
+                placeholder="What's on your mind?..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              ></textarea>
             </div>
-          </div>
-        </div>
+            
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <motion.button
+                className={`py-2 px-6 rounded-lg flex items-center ${
+                  selectedMood === null
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-accent text-white hover:bg-accentDark'
+                }`}
+                whileHover={selectedMood !== null ? { scale: 1.02 } : {}}
+                whileTap={selectedMood !== null ? { scale: 0.98 } : {}}
+                disabled={selectedMood === null || isSubmitting}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </span>
+                ) : (
+                  <span>Log Your Pulse</span>
+                )}
+              </motion.button>
+            </div>
+            
+            {/* Success Message */}
+            <AnimatePresence>
+              {showSuccess && (
+                <motion.div 
+                  className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Check className="mr-2" size={18} />
+                  Your pulse has been logged successfully!
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
-        {/* Themes */}
-        <div className="bg-white rounded-2xl p-5 shadow mb-6">
-          <h2 className="text-xl font-semibold mb-3">Top Themes</h2>
-          <div className="flex flex-wrap gap-2">
-            {(data?.top_themes || []).map((t:any)=> (
-              <span key={t.name} className="px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-sm">{t.name} · {t.count}</span>
-            ))}
-            {(!data?.top_themes || data.top_themes.length===0) && <span className="text-gray-500 text-sm">No data yet</span>}
-          </div>
-        </div>
-
-        {/* AI Summary and Actions */}
-        <div className="bg-white rounded-2xl p-5 shadow mb-6">
-          <h2 className="text-xl font-semibold mb-2">Community Care Feed</h2>
-          <p className="text-gray-700 mb-4">{data?.ai_summary || (loading ? 'Loading…' : 'Care ideas will appear here.')}</p>
-          <div className="space-y-3">
-            {(data?.ai_actions || []).map((a: Action) => (
-              <div key={a.id} className="border rounded-lg p-3 flex items-start justify-between gap-4">
-                <div>
-                  <div className="font-semibold">{a.title}</div>
-                  <div className="text-sm text-gray-600">{a.description}</div>
-                  <div className="text-xs text-gray-500 mt-1">{a.type} · ~{a.time_estimate} min</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {a.type === 'breathing' && (
-                    <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={()=>setShowBreath(true)}>Do now</button>
-                  )}
-                  <button className="px-3 py-1 bg-gray-100 rounded" onClick={async()=>{
-                    if (!sessionId) return;
-                    await sendPulseFeedback({ session_id: sessionId, region, suggestion_id: a.id, value: 1 });
-                  }}>👍</button>
-                  <button className="px-3 py-1 bg-gray-100 rounded" onClick={async()=>{
-                    if (!sessionId) return;
-                    await sendPulseFeedback({ session_id: sessionId, region, suggestion_id: a.id, value: -1 });
-                  }}>👎</button>
-                </div>
+          {/* Recent Check-ins */}
+          <motion.div 
+            className="bg-white rounded-xl shadow-md p-6"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Clock className="mr-2 text-accent" size={20} />
+              Recent Check-ins
+            </h2>
+            
+            {pulseEntries.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="mx-auto mb-3" size={32} />
+                <p>No recent check-ins. Log your pulse to see your history here.</p>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="space-y-4">
+                {pulseEntries.slice(0, 10).map((entry) => (
+                  <motion.div 
+                    key={entry.id} 
+                    className="border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="mr-3">
+                          {getMoodEmoji(entry.mood)}
+                        </div>
+                        <div className="font-medium">
+                          {entry.mood === 1 ? 'Awful' : 
+                           entry.mood === 2 ? 'Bad' : 
+                           entry.mood === 3 ? 'Okay' : 
+                           entry.mood === 4 ? 'Good' : 'Great'}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatDate(entry.timestamp)}
+                      </div>
+                    </div>
+                    {entry.note && (
+                      <div className="mt-2 text-gray-600">
+                        {entry.note}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
         </div>
-
-        {/* Safety note */}
-        {data?.safety === 'high' && (
-          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
-            Community trend suggests extra care. If you or someone is in danger, please use helplines on the Resources page.
-          </div>
-        )}
-      </div>
-
-      {showBreath && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>setShowBreath(false)}>
-          <div className="bg-white p-4 rounded-xl shadow" onClick={(e)=>e.stopPropagation()}>
-            <BreathTimer />
-            <div className="text-right mt-3">
-              <button className="px-3 py-1 bg-teal-600 text-white rounded" onClick={()=>setShowBreath(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+      </motion.div>
     </div>
   );
 };

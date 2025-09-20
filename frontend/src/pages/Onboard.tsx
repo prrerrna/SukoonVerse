@@ -12,13 +12,10 @@ const Onboard = () => {
   const toolsRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   
-  
   // Handle chat button click
   const handleChatClick = () => {
     navigate('/chat');
   };
-
-  // (scroll indicator removed; not used)
 
   // Scroll to tools section
   const scrollToTools = () => {
