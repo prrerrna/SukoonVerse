@@ -12,7 +12,7 @@ type SidebarProps = {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const setHoveredItem = (_: string | null) => {};
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   
   // Handle scroll events to prevent body scrolling when hovering over sidebar
@@ -30,11 +30,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   
   // Check for user authentication status
   useEffect(() => {
+    if (!firebaseAuth) {
+      setCurrentUser(null);
+      return;
+    }
     const unsubscribe = firebaseAuth.onAuthStateChanged((user) => {
       setCurrentUser(user);
     });
-    
-    // Clean up subscription
     return () => unsubscribe();
   }, []);
   

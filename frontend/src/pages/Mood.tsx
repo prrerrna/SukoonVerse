@@ -1,6 +1,6 @@
 // Mood.tsx: A page for displaying mood history and trends.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 import useSession from '../hooks/useSession';
 import { reportPulse, saveMoodToCloud, getCloudMoodHistory, getMoodStats, deleteMoodEntry } from '../lib/api';
 import TrendChart from '../components/TrendChart';

@@ -5,7 +5,6 @@ interface ChatBubbleProps {
   role: 'user' | 'model';
   content: string;
   timestamp?: Date;
-  isCrisis?: boolean;
 }
 
 // Format timestamp to readable time
@@ -17,8 +16,7 @@ const formatTime = (date?: Date) => {
 const ChatBubble: React.FC<ChatBubbleProps> = ({ 
   role, 
   content, 
-  timestamp = new Date(),
-  isCrisis = false
+  timestamp = new Date()
 }) => {
   const isUser = role === 'user';
   const [animationComplete, setAnimationComplete] = useState(false);
