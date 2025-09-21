@@ -95,7 +95,7 @@ docker-compose up --build
 ```
 
 - Frontend will be available at `http://localhost:5173`
-- Backend will be available at `http://localhost:5000`
+- Backend will be available at `http://localhost:8080`
 
 ### Running Services Manually
 

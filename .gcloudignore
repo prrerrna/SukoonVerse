@@ -1,0 +1,31 @@
+# This file specifies files that are NOT uploaded to Google Cloud
+# using gcloud. It follows the same pattern as .gitignore files.
+# For more details, see: https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+
+# Ignore the .git directory
+.git/
+
+# Ignore node and build caches
+node_modules/
+frontend/node_modules/
+**/node_modules/
+**/.vite/
+**/dist/
+**/.cache/
+**/.parcel-cache/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Local env & logs
+.env
+.env.*
+*.log
+
+# Local credentials (use Secret Manager / ADC)
+serviceAccountKey.json
+
+# OS files
+.DS_Store
+Thumbs.db

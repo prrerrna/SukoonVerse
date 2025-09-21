@@ -1,0 +1,33 @@
+node_modules
+frontend/node_modules
+**/node_modules
+**/.vite
+**/dist
+**/.cache
+**/.next
+**/.turbo
+**/.pnpm-store
+**/.eslintcache
+**/.parcel-cache
+
+.git
+.gitignore
+.gitattributes
+
+/.env
+/.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+__pycache__
+*.py[cod]
+*.pyc
+
+# Exclude local credentials; use ADC/Secret Manager instead
+serviceAccountKey.json
+
+# OS files
+.DS_Store
+Thumbs.db

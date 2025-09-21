@@ -8,15 +8,11 @@ protect API routes that require authentication.
 import os
 from functools import wraps
 from flask import request, jsonify, g
-import firebase_admin
-from firebase_admin import auth, credentials
+from firebase_admin import auth
 
 SKIP_AUTH = os.environ.get('SKIP_FIREBASE_AUTH', '').lower() in ('1', 'true', 'yes')
 
-# Initialize Firebase Admin with credentials
-cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', 'serviceAccountKey.json')
-cred = credentials.Certificate(cred_path)
-firebase_admin.initialize_app(cred)
+# Firebase Admin initialization is handled centrally in app.db.initialize_firebase()
 
 def verify_firebase_token():
     """

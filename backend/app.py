@@ -28,8 +28,14 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-fo
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_PERMANENT'] = True
 
-# In a real app, you'd want to restrict this more carefully
-CORS(app, supports_credentials=True) 
+# CORS configuration: allow specific origins via ALLOWED_ORIGINS env (comma-separated)
+allowed_origins = os.environ.get('ALLOWED_ORIGINS')
+if allowed_origins:
+    origins = [o.strip() for o in allowed_origins.split(',') if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": origins}}, supports_credentials=True)
+else:
+    # Dev friendly default; tighten in production by setting ALLOWED_ORIGINS
+    CORS(app, supports_credentials=True)
 
 # Initialize Firebase Admin SDK
 initialize_firebase()
