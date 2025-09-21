@@ -29,7 +29,7 @@ RUN npm run build
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=app.py \
+    FLASK_APP=wsgi.py \
     FLASK_RUN_HOST=0.0.0.0
 
 WORKDIR /app
@@ -46,4 +46,4 @@ COPY --from=frontend-build /frontend/dist/ /app/static/
 EXPOSE 8080
 
 # Run via gunicorn; Cloud Run provides $PORT
-CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT:-8080} app:app"]
+CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT:-8080} wsgi:app"]
