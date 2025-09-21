@@ -179,11 +179,13 @@ Use a single Cloud Run service that serves the Flask API and the prebuilt SPA.
 	- In Cloud Run → Service → Volumes: Add Secret volume `firebase-sa` → mount path `/var/secrets/firebase`.
 	- Add env var `GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/firebase/FIREBASE_SA`.
 
-5) Provide Firebase Web SDK config to the frontend (Fixes “Auth not configured”)
-- Option A (recommended): Configure build-time variables for Vite in the Cloud Run build settings (Source deployment)
-	- Add build args for the Dockerfile: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_MEASUREMENT_ID`
-- Option B: Commit a production env file
-	- Copy `frontend/.env.example` to `frontend/.env.production`, fill values, and commit. The Docker build will pick them up automatically.
+5) Provide Firebase Web SDK config at runtime (recommended)
+- No need to commit frontend env files. Backend serves `/config.js` which populates `window.__RUNTIME_CONFIG__`.
+- Set either:
+	- A single secret/env `FIREBASE_WEB_CONFIG` with JSON like:
+		`{ "apiKey":"...", "authDomain":"...", "projectId":"...", "storageBucket":"...", "messagingSenderId":"...", "appId":"...", "measurementId":"..." }`
+	- Or individual envs: `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, `FIREBASE_MEASUREMENT_ID`
+- The frontend reads this at runtime before booting.
 
 6) Deploy
 - Click Create. First build may take a few minutes.

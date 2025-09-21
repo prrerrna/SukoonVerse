@@ -2,7 +2,8 @@
 import os
 from datetime import timedelta
 from uuid import uuid4
-from flask import Flask, session, send_from_directory
+from flask import Flask, session, send_from_directory, Response
+import json
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -92,6 +93,47 @@ def get_session_id():
 @app.route('/api/health', methods=['GET', 'HEAD'])
 def health():
     return {"status": "ok"}, 200
+
+@app.route('/config.js', methods=['GET'])
+def runtime_config_js():
+    # Prefer a single JSON blob in FIREBASE_WEB_CONFIG; fallback to individual env vars.
+    cfg = {}
+    raw = os.environ.get('FIREBASE_WEB_CONFIG')
+    if raw:
+        try:
+            data = json.loads(raw)
+            cfg = {
+                'FIREBASE_API_KEY': data.get('apiKey') or data.get('FIREBASE_API_KEY') or '',
+                'FIREBASE_AUTH_DOMAIN': data.get('authDomain') or data.get('FIREBASE_AUTH_DOMAIN') or '',
+                'FIREBASE_PROJECT_ID': data.get('projectId') or data.get('FIREBASE_PROJECT_ID') or '',
+                'FIREBASE_STORAGE_BUCKET': data.get('storageBucket') or data.get('FIREBASE_STORAGE_BUCKET') or '',
+                'FIREBASE_MESSAGING_SENDER_ID': data.get('messagingSenderId') or data.get('FIREBASE_MESSAGING_SENDER_ID') or '',
+                'FIREBASE_APP_ID': data.get('appId') or data.get('FIREBASE_APP_ID') or '',
+                'FIREBASE_MEASUREMENT_ID': data.get('measurementId') or data.get('FIREBASE_MEASUREMENT_ID') or '',
+            }
+        except Exception:
+            cfg = {}
+    if not cfg:
+        def first_non_empty(*keys: str) -> str:
+            for k in keys:
+                v = os.environ.get(k)
+                if v:
+                    return v
+            return ''
+        cfg = {
+            'FIREBASE_API_KEY': first_non_empty('FIREBASE_API_KEY', 'VITE_FIREBASE_API_KEY'),
+            'FIREBASE_AUTH_DOMAIN': first_non_empty('FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_AUTH_DOMAIN'),
+            'FIREBASE_PROJECT_ID': first_non_empty('FIREBASE_PROJECT_ID', 'VITE_FIREBASE_PROJECT_ID'),
+            'FIREBASE_STORAGE_BUCKET': first_non_empty('FIREBASE_STORAGE_BUCKET', 'VITE_FIREBASE_STORAGE_BUCKET'),
+            'FIREBASE_MESSAGING_SENDER_ID': first_non_empty('FIREBASE_MESSAGING_SENDER_ID', 'VITE_FIREBASE_MESSAGING_SENDER_ID'),
+            'FIREBASE_APP_ID': first_non_empty('FIREBASE_APP_ID', 'VITE_FIREBASE_APP_ID'),
+            'FIREBASE_MEASUREMENT_ID': first_non_empty('FIREBASE_MEASUREMENT_ID', 'VITE_FIREBASE_MEASUREMENT_ID'),
+        }
+
+    body = f"window.__RUNTIME_CONFIG__ = {json.dumps(cfg)};"
+    resp = Response(body, mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resp
 
 if __name__ == '__main__':
     # The app runs on port 5000 by default

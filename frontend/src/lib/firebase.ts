@@ -1,27 +1,38 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+type RuntimeCfg = {
+  FIREBASE_API_KEY?: string;
+  FIREBASE_AUTH_DOMAIN?: string;
+  FIREBASE_PROJECT_ID?: string;
+  FIREBASE_STORAGE_BUCKET?: string;
+  FIREBASE_MESSAGING_SENDER_ID?: string;
+  FIREBASE_APP_ID?: string;
+  FIREBASE_MEASUREMENT_ID?: string;
 };
 
-const isConfigured = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.appId,
-].every(Boolean);
+declare global {
+  interface Window { __RUNTIME_CONFIG__?: RuntimeCfg }
+}
+
+const rc = (typeof window !== 'undefined' ? window.__RUNTIME_CONFIG__ : undefined) || {};
+
+const firebaseConfig = {
+  apiKey: rc.FIREBASE_API_KEY,
+  authDomain: rc.FIREBASE_AUTH_DOMAIN,
+  projectId: rc.FIREBASE_PROJECT_ID,
+  storageBucket: rc.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: rc.FIREBASE_MESSAGING_SENDER_ID,
+  appId: rc.FIREBASE_APP_ID,
+};
+
+const isConfigured = [firebaseConfig.apiKey, firebaseConfig.authDomain, firebaseConfig.projectId, firebaseConfig.appId].every(Boolean);
 
 let app: ReturnType<typeof initializeApp> | undefined;
 let auth: ReturnType<typeof getAuth> | undefined;
 
 if (isConfigured) {
-  app = initializeApp(firebaseConfig);
+  app = getApps()[0] ?? initializeApp(firebaseConfig);
   auth = getAuth(app);
 }
 
