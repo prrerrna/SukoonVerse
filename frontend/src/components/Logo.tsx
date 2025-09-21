@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import logoUrl from "../images/logo.png";
 
 const Logo: React.FC<{ size?: number; linkToHome?: boolean }> = ({ size = 44, linkToHome = true }) => {
   const logoContent = (
@@ -8,7 +9,7 @@ const Logo: React.FC<{ size?: number; linkToHome?: boolean }> = ({ size = 44, li
       style={{ width: size, height: size }}
     >
       <img
-        src={"/src/images/logo.png"}
+        src={logoUrl}
         alt="SukoonVerse Logo"
         className="object-contain rounded-[25%]"
         style={{ width: size * 0.85, height: size * 0.85 }}

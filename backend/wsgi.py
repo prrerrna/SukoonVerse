@@ -64,6 +64,10 @@ def index():
         return send_from_directory(app.static_folder, 'index.html')
     return "Welcome to the Sakhi GenAI Backend!"
 
+# Explicit SPA routes to ensure client-side routing works in Cloud Run
+for _path in ['login', 'chat', 'mood', 'pulse', 'share', 'settings']:
+    app.add_url_rule(f'/{_path}', f'spa_{_path}', index)
+
 # SPA fallback: serve index.html for non-API routes so client routing works
 @app.route('/<path:path>')
 def serve_spa(path: str):
