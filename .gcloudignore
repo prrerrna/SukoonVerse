@@ -18,9 +18,9 @@ frontend/node_modules/
 __pycache__/
 *.py[cod]
 
-# Local env & logs
-.env
-.env.*
+# Local env & logs (anchor to repo root only)
+/.env
+/.env.*
 *.log
 
 # Local credentials (use Secret Manager / ADC)

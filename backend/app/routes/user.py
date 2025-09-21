@@ -5,6 +5,7 @@ This module defines API endpoints for user registration, login, and profile mana
 Uses Firestore for storing user details.
 """
 
+import os
 import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, g
@@ -13,6 +14,7 @@ from app.db import get_db
 
 # User blueprint for auth and profile management
 user_bp = Blueprint('user', __name__)
+SKIP_AUTH = os.environ.get('SKIP_FIREBASE_AUTH', '').lower() in ('1', 'true', 'yes')
 
 @user_bp.route('/register', methods=['POST'])
 @user_bp.route('/user/register', methods=['POST'])
@@ -39,6 +41,18 @@ def register_user(decoded_token):
     language = profile.get('language', 'en')
     session_id = data.get('session_id', '')
     
+    if SKIP_AUTH:
+        return jsonify({
+            "message": "User registered successfully (dev)",
+            "profile": {
+                "name": name,
+                "mobile": mobile,
+                "preferredName": preferred_name,
+                "region": region,
+                "language": language
+            }
+        }), 201
+
     # Get Firestore instance
     db = get_db()
     user_ref = db.collection('userinfo').document(firebase_uid)
@@ -84,6 +98,18 @@ def get_profile(decoded_token):
     """
     Get the user's profile from Firestore.
     """
+    if SKIP_AUTH:
+        return jsonify({
+            "profile": {
+                "name": os.environ.get('DEV_USER_NAME', 'Dev User'),
+                "mobile": "",
+                "preferredName": "",
+                "region": "",
+                "language": "en",
+                "dob": ""
+            }
+        })
+
     firebase_uid = decoded_token['uid']
     
     # Get Firestore instance
@@ -120,6 +146,19 @@ def update_profile(decoded_token):
     firebase_uid = decoded_token['uid']
     profile = data['profile']
     
+    if SKIP_AUTH:
+        return jsonify({
+            "message": "Profile updated successfully (dev)",
+            "profile": {
+                "name": profile.get('name', ''),
+                "mobile": profile.get('mobile', ''),
+                "dob": profile.get('dob', ''),
+                "preferredName": profile.get('preferredName', ''),
+                "region": profile.get('region', ''),
+                "language": profile.get('language', 'en')
+            }
+        })
+
     print(f"Updating profile for user {firebase_uid}")
     print(f"Profile data received: {profile}")
     
