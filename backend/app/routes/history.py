@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, request, jsonify
 from app.auth import verify_token
 from app.db import get_db
@@ -5,6 +6,7 @@ from firebase_admin import firestore
 import logging
 
 history_bp = Blueprint('history_bp', __name__)
+SKIP_AUTH = os.environ.get('SKIP_FIREBASE_AUTH', '').lower() in ('1', 'true', 'yes')
 
 @history_bp.route('/history/session', methods=['POST'])
 @verify_token
@@ -12,6 +14,8 @@ def create_chat_session(decoded_token):
     """
     Creates a new chat session in Firestore.
     """
+    if SKIP_AUTH:
+        return jsonify({'sessionId': 'dev-session'}), 201
     db = get_db()
     user_id = decoded_token['uid']
     data = request.get_json()
@@ -35,6 +39,8 @@ def get_chat_sessions(decoded_token):
     """
     Retrieves all chat sessions for the logged-in user.
     """
+    if SKIP_AUTH:
+        return jsonify([]), 200
     db = get_db()
     user_id = decoded_token['uid']
     try:
@@ -57,6 +63,8 @@ def get_messages(decoded_token, session_id):
     """
     Retrieves all messages for a specific chat session.
     """
+    if SKIP_AUTH:
+        return jsonify([]), 200
     db = get_db()
     user_id = decoded_token['uid']
     try:
@@ -78,6 +86,8 @@ def delete_chat_session(decoded_token, session_id):
     """
     Deletes a specific chat session and all its messages.
     """
+    if SKIP_AUTH:
+        return jsonify({"success": True, "message": "Chat session deleted successfully (dev)"}), 200
     db = get_db()
     user_id = decoded_token['uid']
     

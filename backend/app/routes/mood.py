@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, session, current_app
 import re
 import json
 from datetime import datetime, timedelta
+import os
 from app.auth import verify_token
 from app.db import get_db
 from firebase_admin import firestore
@@ -10,6 +11,7 @@ import logging
 import uuid
 
 mood_bp = Blueprint('mood_bp', __name__)
+SKIP_AUTH = os.environ.get('SKIP_FIREBASE_AUTH', '').lower() in ('1', 'true', 'yes')
 
 # Keywords for mood detection
 MOOD_KEYWORDS = {
@@ -181,6 +183,12 @@ def save_mood_to_cloud(decoded_token):
         "timestamp": ISO timestamp
     }
     """
+    if SKIP_AUTH:
+        return jsonify({
+            "id": "dev-mood",
+            "success": True,
+            "message": "Mood entry saved (dev)"
+        }), 201
     db = get_db()
     user_id = decoded_token['uid']
     data = request.get_json()
@@ -250,6 +258,8 @@ def get_cloud_mood_history(decoded_token):
         ]
     }
     """
+    if SKIP_AUTH:
+        return jsonify({"history": []}), 200
     db = get_db()
     user_id = decoded_token['uid']
     
@@ -302,6 +312,8 @@ def update_mood_entry(decoded_token, entry_id):
     
     At least one field must be provided to update.
     """
+    if SKIP_AUTH:
+        return jsonify({"success": True, "message": "Mood entry updated (dev)"}), 200
     db = get_db()
     user_id = decoded_token['uid']
         
@@ -344,6 +356,8 @@ def delete_mood_entry(decoded_token, entry_id):
     """
     Delete a mood entry from Firestore.
     """
+    if SKIP_AUTH:
+        return jsonify({"success": True, "message": "Mood entry deleted (dev)"}), 200
     db = get_db()
     user_id = decoded_token['uid']
         
@@ -373,6 +387,15 @@ def get_mood_stats(decoded_token):
     - Best and worst days
     - Entry counts
     """
+    if SKIP_AUTH:
+        return jsonify({
+            "weekly_avg": None,
+            "daily_averages": {},
+            "streak": 0,
+            "entry_count": 0,
+            "best_day": None,
+            "worst_day": None
+        }), 200
     db = get_db()
     user_id = decoded_token['uid']
         
