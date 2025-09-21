@@ -13,7 +13,9 @@ services:
       - PORT=8080
 
   frontend:
-    build: ./frontend
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev"
     ports:
       - "5173:5173"
     volumes:
@@ -22,4 +24,5 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_DEV_API_URL=http://localhost:8080
+      - VITE_DEV_API_URL=http://backend:8080
+      - CHOKIDAR_USEPOLLING=true

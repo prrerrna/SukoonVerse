@@ -137,3 +137,56 @@ npm run dev
 - **Database**: The default mode is ephemeral, using client-side IndexedDB. To enable persistent storage, the backend database connection needs to be configured (e.g., to Firestore or an encrypted SQLite database) and the frontend `api.ts` needs to be updated to handle user consent for persistence.
 - **Security**: Ensure all production environment variables (API keys, secret keys) are stored securely and not hardcoded.
 - **CORS**: The development Flask server allows all origins. For production, tighten the `CORS` configuration in `app.py` to only allow your frontend's domain.
+
+---
+
+## Deploy to Cloud Run (GitHub UI)
+
+Use a single Cloud Run service that serves the Flask API and the prebuilt SPA.
+
+1) Prep the repo (done in this branch)
+- Root `Dockerfile` builds frontend then runs Flask via Gunicorn on `$PORT`.
+- `.dockerignore` and `.gcloudignore` minimize build context; secrets excluded.
+- Backend uses Firebase Admin via ADC. Do not commit `serviceAccountKey.json`.
+
+2) Configure GCP prerequisites
+- Create a GCP project and enable: Cloud Run, Cloud Build, Artifact Registry, Secret Manager, Firestore (Native) if using cloud features.
+- Create an Artifact Registry repo (format: Docker) in your region (e.g., `us-central1`).
+- Option A (recommended): Use Workload Identity Federation + ADC in Cloud Run.
+- Option B: Store a Service Account JSON in Secret Manager and mount as file.
+
+3) Connect GitHub repo to Cloud Run
+- Console → Cloud Run → Create Service → Deployment platform: Source repository.
+- Connect GitHub and select this repo/branch `main`.
+- Build config: Dockerfile at `/Dockerfile` (root). No buildpacks.
+- Service settings:
+	- Region: choose near users.
+	- CPU/Memory: start with 1 vCPU / 512–1024 MB.
+	- Min instances: 0; Max instances: start 10.
+	- Ingress: Allow all (or internal + authorized if needed).
+	- Authentication: Allow unauthenticated (frontend SPA + public APIs) or require auth as needed.
+
+4) Set environment variables
+- `GEMINI_API_KEY` (if using Gemini).
+- `SAKHI_MOOD_NORMALIZE` (optional: `true`/`false`).
+- `ALLOWED_ORIGINS` (comma-separated prod origins, e.g., `https://your-domain`).
+- `FLASK_SECRET_KEY` (random string).
+
+5) Configure Firebase Admin credentials
+- Preferred: Grant Cloud Run service account the Firebase/Firestore roles; rely on ADC (`Application Default Credentials`). No file needed.
+- If using Secret Manager JSON:
+	- Create secret `FIREBASE_SA` with the JSON content.
+	- In Cloud Run → Service → Volumes: Add Secret volume `firebase-sa` → mount path `/var/secrets/firebase`.
+	- Add env var `GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/firebase/FIREBASE_SA`.
+
+6) Deploy
+- Click Create. First build may take a few minutes.
+- After deploy, open the service URL and verify the SPA and `/api/*` endpoints.
+
+7) CI/CD trigger (optional)
+- Cloud Run creates a Cloud Build trigger on the selected branch. Pushes to `main` will auto-deploy.
+
+Troubleshooting
+- 404s on client routes: ensure SPA fallback in backend is active (already configured).
+- CORS errors: set `ALLOWED_ORIGINS` to your Cloud Run URL and custom domain.
+- 401 on auth endpoints: ensure Firebase Web SDK uses the correct web keys, and Cloud Run has Firebase Admin permissions.
