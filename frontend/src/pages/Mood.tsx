@@ -11,7 +11,8 @@ import { getMoodHistory } from '../lib/api';
 import BreathTimer from '../components/BreathTimer';
 import Sidebar from '../components/Sidebar';
 import ThemeSelector from '../components/ThemeSelector';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { firebaseAuth } from '../lib/firebase';
 
 type DayPoint = { 
   day: string; 
@@ -272,8 +273,11 @@ const Mood = () => {
 
   // Check authentication status
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!firebaseAuth) {
+      setIsAuthenticated(false);
+      return;
+    }
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       setIsAuthenticated(!!user);
       if (user) {
         setUseCloudStorage(true); // Enable cloud storage by default for logged-in users

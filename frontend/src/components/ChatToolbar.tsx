@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Pencil, ChevronLeft, ChevronRight, Home, Activity, Heart, LogOut } from 'lucide-react';
-import { getAuth } from 'firebase/auth';
+import { firebaseAuth } from '../lib/firebase';
 import { ChatSession, deleteChatSession, listChatSessions, renameChatSession } from '../utils/indexeddb';
 import { getRemoteChatSessions } from '../lib/api';
 import Logo from './Logo';
@@ -26,10 +26,7 @@ const ChatToolbar: React.FC<ChatToolbarProps> = ({
   const [loading, setLoading] = useState(true);
 
   // Check if user is logged in
-  const isLoggedIn = () => {
-    const auth = getAuth();
-    return !!auth.currentUser;
-  };
+  const isLoggedIn = () => !!firebaseAuth?.currentUser;
 
   // Load sessions based on authentication status
   const loadSessions = async () => {
@@ -281,11 +278,11 @@ const ChatToolbar: React.FC<ChatToolbarProps> = ({
                 {isLoggedIn() ? (
                   <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accentDark/30">
                     <span className="font-medium">
-                      {getAuth().currentUser?.displayName || 'Logged In'}
+                      {firebaseAuth?.currentUser?.displayName || 'Logged In'}
                     </span>
                     <button
                       onClick={async () => {
-                        await getAuth().signOut();
+                        if (firebaseAuth) await firebaseAuth.signOut();
                         window.location.href = '/login';
                       }}
                       className="p-1 hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
@@ -311,7 +308,7 @@ const ChatToolbar: React.FC<ChatToolbarProps> = ({
           {!isOpen && (
             <button 
               className="p-2 w-full flex justify-center hover:bg-accentDark/30 rounded-full transition-all hover:scale-110"
-              onClick={() => isLoggedIn() ? getAuth().signOut() : navigate('/login')}
+              onClick={() => isLoggedIn() ? (firebaseAuth?.signOut()) : navigate('/login')}
               title={isLoggedIn() ? "Sign Out" : "Sign In"}
             >
               <LogOut size={18} className={isLoggedIn() ? "" : "rotate-180"} />

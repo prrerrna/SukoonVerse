@@ -1,6 +1,7 @@
 # Root
 *.env
 *.env.example
+firebase-web-config.json
 
 # Node / Frontend
 frontend/node_modules/

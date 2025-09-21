@@ -189,7 +189,7 @@ export const sendPulseFeedback = async (payload: { session_id: string; region: s
 // ===============================
 // Firebase Authentication API
 // ===============================
-import { getAuth } from 'firebase/auth';
+import { firebaseAuth } from './firebase';
 
 /**
  * Makes an authenticated request to the backend API
@@ -201,8 +201,7 @@ export async function authenticatedRequest(
 ) {
   try {
     // Get current Firebase user
-    const auth = getAuth();
-    const user = auth.currentUser;
+    const user = firebaseAuth?.currentUser;
 
     if (!user) {
       throw new Error('User is not authenticated');
