@@ -85,6 +85,10 @@ def get_session_id():
     # Expose a stable id for this server run (useful for front-end testing)
     return {"session_id": SERVER_RUN_SESSION_ID}
 
+@app.route('/api/health', methods=['GET', 'HEAD'])
+def health():
+    return {"status": "ok"}, 200
+
 if __name__ == '__main__':
     # The app runs on port 5000 by default
     app.run(host='0.0.0.0')
