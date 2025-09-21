@@ -63,32 +63,18 @@ const Onboard = () => {
           Your browser does not support the audio element.
         </audio>
         <div className="absolute top-2 right-4 z-20 flex items-center">
-          {/* Music note icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-6 w-6 text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18V5l12-2v13" />
-            <circle cx="5" cy="19" r="3" />
-          </svg>
-          <button
-            onClick={handleMusicToggle}
-            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none shadow-md`}
-            style={{ background: musicOn ? undefined : '#466C36' }}
-            aria-label={musicOn ? 'Pause Calming Music' : 'Play Calming Music'}
-          >
-            <span
-              className={`absolute left-1 top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-300 ${musicOn ? 'translate-x-6' : ''}`}
-              style={{ willChange: 'transform' }}
+          <div className="flex items-center bg-white/70 backdrop-blur-sm px-3 py-2 rounded-full shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-accentDark mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" />
+              <circle cx="5" cy="19" r="2" />
+            </svg>
+            <button
+              onClick={handleMusicToggle}
+              className="text-xs font-medium text-accentDark bg-white/80 px-2 py-1 rounded-md hover:bg-accent hover:text-white transition-colors"
             >
-              {musicOn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 m-auto text-accentDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" /><circle cx="5" cy="19" r="2" /></svg>
-              )}
-            </span>
-            {/* Track color change */}
-            <span
-              className={`absolute inset-0 rounded-full pointer-events-none transition-colors duration-300 ${musicOn ? 'bg-accent' : 'bg-border'}`}
-            />
-          </button>
+              {musicOn ? "Mute" : "Play Music"}
+            </button>
+          </div>
         </div>
         {/* Hero Section */}
   <section className="min-h-[100svh] sm:min-h-screen flex flex-col justify-center items-center px-4 py-20 relative overflow-hidden bg-[#e0ebd3]">

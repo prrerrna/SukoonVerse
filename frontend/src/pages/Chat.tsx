@@ -36,16 +36,36 @@ const Chat: React.FC = () => {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [user, setUser] = useState<FirebaseUser>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [musicOn, setMusicOn] = useState(false);
   
   // References
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Music toggle function
+  const handleMusicToggle = () => setMusicOn((prev) => !prev);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
+  // Handle music playback
+  useEffect(() => {
+    if (audioRef.current) {
+      if (musicOn) {
+        audioRef.current.play().catch(err => {
+          console.error('Failed to play audio:', err);
+          setMusicOn(false);
+        });
+      } else {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+  }, [musicOn]);
 
   // Listen for authentication changes
   useEffect(() => {
@@ -284,6 +304,18 @@ const Chat: React.FC = () => {
 
   return (
     <div className="h-screen flex bg-background">
+      {/* Audio Element for Calming Music */}
+      <audio
+        ref={audioRef}
+        loop
+        preload="auto"
+        onError={() => setMusicOn(false)}
+        style={{ display: 'none' }}
+      >
+        <source src="/sounds/calm-music-64526.mp3" type="audio/mp3" />
+        Your browser does not support the audio element.
+      </audio>
+      
       {/* Sidebar */}
       <ChatToolbar
         isOpen={sidebarOpen}
@@ -295,11 +327,26 @@ const Chat: React.FC = () => {
 
       {/* Main Chat Area */}
       <main 
-        className="flex-1 flex flex-col transition-all duration-200 ease-in-out"
+        className="flex-1 flex flex-col transition-all duration-200 ease-in-out relative"
         style={{
           marginLeft: sidebarOpen ? '16rem' : '4rem'
         }}
       >
+        {/* Calming Music Toggle Switch */}
+        <div className="absolute top-2 right-4 z-20 flex items-center">
+          <div className="flex items-center bg-white/70 backdrop-blur-sm px-3 py-2 rounded-full shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-accentDark mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" />
+              <circle cx="5" cy="19" r="2" />
+            </svg>
+            <button
+              onClick={handleMusicToggle}
+              className="text-xs font-medium text-accentDark bg-white/80 px-2 py-1 rounded-md hover:bg-accent hover:text-white transition-colors"
+            >
+              {musicOn ? "Mute" : "Play Music"}
+            </button>
+          </div>
+        </div>
         {/* Chat Messages */}
         <div 
           ref={chatContainerRef}
@@ -342,6 +389,48 @@ const Chat: React.FC = () => {
                 role={message.role}
                 content={message.content}
               />
+              
+              {/* Crisis Resources - Only show for model responses that may contain crisis resources */}
+              {message.role === 'model' && message.content.includes('helpline') && (
+                <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-lg animate-pulse-subtle">
+                  <h3 className="text-red-600 font-bold mb-2">Support Resources</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <a 
+                      href="tel:1800-599-0019" 
+                      className="flex items-center p-3 bg-white rounded border border-red-100 hover:bg-red-50"
+                    >
+                      <span className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                        <span className="text-red-600 text-xl">📞</span>
+                      </span>
+                      <div>
+                        <div className="font-medium">KIRAN Helpline</div>
+                        <div className="text-sm text-gray-600">1800-599-0019</div>
+                      </div>
+                    </a>
+                    
+                    <a 
+                      href="tel:91-44-2464-0050" 
+                      className="flex items-center p-3 bg-white rounded border border-red-100 hover:bg-red-50"
+                    >
+                      <span className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                        <span className="text-red-600 text-xl">📞</span>
+                      </span>
+                      <div>
+                        <div className="font-medium">Sneha India</div>
+                        <div className="text-sm text-gray-600">91-44-2464-0050</div>
+                      </div>
+                    </a>
+                  </div>
+                  
+                  <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-100">
+                    <h4 className="text-blue-700 font-medium mb-1">Try this breathing exercise:</h4>
+                    <p className="text-sm text-gray-700">Breathe in for 4 counts, hold for 2, exhale for 6. Repeat 3-5 times.</p>
+                    <button className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm">
+                      Start Guided Breathing
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 

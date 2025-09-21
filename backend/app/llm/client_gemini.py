@@ -299,3 +299,95 @@ def generate_short_title(text: str, max_words: int = 5) -> str | None:
         return title or None
     except Exception:
         return None
+
+
+def detect_crisis(message: str) -> tuple:
+    """
+    Dedicated function for crisis detection using Gemini API.
+    Uses a specialized prompt designed specifically for crisis detection.
+    
+    Args:
+        message: User message to check for crisis indicators
+        
+    Returns:
+        Tuple of (is_crisis: bool, confidence: float, reasoning: str)
+        - is_crisis: True if crisis detected
+        - confidence: Score from 0-1 indicating confidence level
+        - reasoning: Brief explanation of why this was classified as crisis or not
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return False, 0.0, "No API key configured"
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")  # Using faster model for quick detection
+        
+        crisis_prompt = """
+        ROLE: You are a crisis detection specialist focused on identifying signs of potential self-harm, suicidal ideation, or severe mental health crisis in short messages.
+        
+        TASK: Evaluate the following message for crisis indicators. Your ONLY job is to detect crisis signals.
+        
+        CRISIS INDICATORS (any of these should raise a flag):
+        - Explicit mention of suicide, self-harm, or wanting to die
+        - Statements about ending one's life or hurting oneself
+        - Expressions of hopelessness paired with desire to end suffering
+        - Specific plans or methods for self-harm
+        - Giving away possessions or saying goodbye
+        - Expressions that indicate the person sees no future or way out
+        - Statements about being a burden to others and they'd be better off without them
+        - Indirect references to ending suffering permanently
+        - Phrases like "I want to die", "I think I want to die", "I can't go on", etc.
+        - In Hindi/Hinglish: "mujhe marna hai", "main mar jana chahta hun", etc.
+        
+        NON-CRISIS (do NOT flag):
+        - General sadness or everyday problems without suicidal/self-harm content
+        - Expressions like "dying of embarrassment" or metaphorical uses of "die"
+        - Frustration or anger without suicidal intent
+        - Statements with "don't want to die" or clearly negating crisis intent
+        
+        The user message is: "{message}"
+        
+        Respond ONLY with the following JSON format and NOTHING ELSE:
+        {{
+          "is_crisis": <true or false>,
+          "confidence": <number between 0 and 1>,
+          "reasoning": "<brief 1-2 sentence explanation>"
+        }}
+        """
+        
+        crisis_prompt = crisis_prompt.format(message=message)
+        response = model.generate_content(crisis_prompt)
+        
+        try:
+            response_text = response.text
+            result = json.loads(response_text)
+            is_crisis = result.get("is_crisis", False)
+            confidence = result.get("confidence", 0.0)
+            reasoning = result.get("reasoning", "")
+            
+            return is_crisis, confidence, reasoning
+            
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"Error parsing crisis detection response: {e}", file=sys.stderr)
+            # Extract possible json from text
+            match = re.search(r"\{.*\}", response.text, re.DOTALL)
+            if match:
+                try:
+                    result = json.loads(match.group(0))
+                    return result.get("is_crisis", False), result.get("confidence", 0.0), result.get("reasoning", "")
+                except:
+                    pass
+            
+            # If we can't parse the response, check for basic keywords as fallback
+            text_lower = message.lower()
+            crisis_keywords = ["suicide", "kill myself", "want to die", "end my life"]
+            for keyword in crisis_keywords:
+                if keyword in text_lower:
+                    return True, 0.9, f"Contains crisis keyword: {keyword}"
+            
+            return False, 0.0, "Failed to analyze message"
+            
+    except Exception as e:
+        print(f"Crisis detection error: {e}", file=sys.stderr)
+        return False, 0.0, f"Error: {str(e)}"

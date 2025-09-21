@@ -21,13 +21,19 @@ def chat():
     # 1. Safety Prefilter (defense-in-depth)
     is_crisis, crisis_type = check_for_crisis(message)
     if is_crisis:
-        # Immediately return crisis response without calling LLM
+        # Immediately return enhanced crisis response with breathing exercise and Indian helplines
         return jsonify({
-            "reply": "It sounds like you are going through a lot right now. It's important to talk to someone who can help. Here is a resource for you.",
-            "mood": {"label": "distressed", "score": 2},
+            "reply": "I'm concerned about what you've shared. It sounds like you're going through a really difficult time right now. Let's take a moment to breathe together:\n\n**Quick Breathing Exercise**:\n1. Breathe in deeply through your nose for 4 counts\n2. Hold for 2 counts\n3. Exhale slowly through your mouth for 6 counts\n4. Repeat 3 times\n\nPlease reach out to one of these free, confidential support services:",
+            "mood": {"label": "distressed", "score": 1},
             "is_crisis": True,
-            "suggested_intervention": "crisis_protocol",
-            "resources": [{"title": "Emergency Helpline", "contact": "tel:9152987821", "type": "helpline"}]
+            "warning": "CRISIS ALERT: Immediate attention recommended",
+            "suggested_intervention": "breathing_exercise",
+            "resources": [
+                {"title": "KIRAN Mental Health Helpline", "contact": "tel:1800-599-0019", "type": "helpline", "description": "24/7 toll-free national helpline"},
+                {"title": "Sneha India Suicide Prevention", "contact": "tel:91-44-2464-0050", "type": "helpline", "description": "24/7 suicide prevention helpline"},
+                {"title": "iCall Psychosocial Helpline", "contact": "tel:9152987821", "type": "helpline", "description": "Professional counseling support"},
+                {"title": "Vandrevala Foundation", "contact": "tel:9999666555", "type": "helpline", "description": "24/7 crisis intervention"}
+            ]
         })
 
     # 2. Manage conversation history (per chat_id) - FOR GUESTS ONLY
