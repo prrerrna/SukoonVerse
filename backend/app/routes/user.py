@@ -40,7 +40,7 @@ def register_user(decoded_token):
     
     # Get Firestore instance
     db = get_db()
-    user_ref = db.collection('users').document(firebase_uid)
+    user_ref = db.collection('userinfo').document(firebase_uid)
     
     # Check if user already exists in Firestore
     user_doc = user_ref.get()
@@ -86,7 +86,7 @@ def get_profile(decoded_token):
     
     # Get Firestore instance
     db = get_db()
-    user_ref = db.collection('users').document(firebase_uid)
+    user_ref = db.collection('userinfo').document(firebase_uid)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
@@ -99,7 +99,8 @@ def get_profile(decoded_token):
             "mobile": user_data.get('mobile'),
             "preferredName": user_data.get('preferred_name'),
             "region": user_data.get('region'),
-            "language": user_data.get('language')
+            "language": user_data.get('language'),
+            "dob": user_data.get('dob')
         }
     })
 
@@ -116,9 +117,12 @@ def update_profile(decoded_token):
     firebase_uid = decoded_token['uid']
     profile = data['profile']
     
+    print(f"Updating profile for user {firebase_uid}")
+    print(f"Profile data received: {profile}")
+    
     # Get Firestore instance
     db = get_db()
-    user_ref = db.collection('users').document(firebase_uid)
+    user_ref = db.collection('userinfo').document(firebase_uid)
     user_doc = user_ref.get()
     
     now = datetime.now().isoformat()
@@ -129,13 +133,16 @@ def update_profile(decoded_token):
             'email': g.user_email if hasattr(g, 'user_email') else '',
             'name': profile.get('name', ''),
             'mobile': profile.get('mobile', ''),
+            'dob': profile.get('dob', ''),
             'preferred_name': profile.get('preferredName', ''),
             'region': profile.get('region', ''),
             'language': profile.get('language', 'en'),
             'created_at': now,
             'updated_at': now,
         }
+        print(f"Creating new user document in userinfo collection: {user_data}")
         user_ref.set(user_data)
+        print(f"Document created successfully")
     else:
         # Get existing user data
         user_data = user_doc.to_dict()
@@ -144,14 +151,17 @@ def update_profile(decoded_token):
         update_data = {
             'name': profile.get('name', user_data.get('name', '')),
             'mobile': profile.get('mobile', user_data.get('mobile', '')),
+            'dob': profile.get('dob', user_data.get('dob', '')),
             'preferred_name': profile.get('preferredName', user_data.get('preferred_name', '')),
             'region': profile.get('region', user_data.get('region', '')),
             'language': profile.get('language', user_data.get('language', 'en')),
             'updated_at': now
         }
         
+        print(f"Updating existing user document: {update_data}")
         # Update document
         user_ref.update(update_data)
+        print(f"Document updated successfully")
         
         # Get the updated data for response
         user_data.update(update_data)
@@ -161,6 +171,7 @@ def update_profile(decoded_token):
         "profile": {
             "name": profile.get('name', user_data.get('name', '')),
             "mobile": profile.get('mobile', user_data.get('mobile', '')),
+            "dob": profile.get('dob', user_data.get('dob', '')),
             "preferredName": profile.get('preferredName', user_data.get('preferred_name', '')),
             "region": profile.get('region', user_data.get('region', '')),
             "language": profile.get('language', user_data.get('language', 'en'))

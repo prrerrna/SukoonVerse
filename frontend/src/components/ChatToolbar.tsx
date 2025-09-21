@@ -4,7 +4,7 @@ import { Plus, Trash2, Pencil, ChevronLeft, ChevronRight, Home, Activity, Heart,
 import { getAuth } from 'firebase/auth';
 import { ChatSession, deleteChatSession, listChatSessions, renameChatSession } from '../utils/indexeddb';
 import { getRemoteChatSessions } from '../lib/api';
-import logo from '../images/logo.png';
+import Logo from './Logo';
 
 interface ChatToolbarProps {
   onSelect: (id: string | null) => void;
@@ -129,12 +129,8 @@ const ChatToolbar: React.FC<ChatToolbarProps> = ({
           {isOpen ? (
             <>
               <div className="flex items-center">
-                <img 
-                  src={logo}
-                  alt="SukoonVerse" 
-                  className="h-8 w-8 mr-2"
-                />
-                <span className="font-medium">SukoonVerse</span>
+                <Logo size={32} />
+                <span className="font-medium ml-2">SukoonVerse</span>
               </div>
               <button 
                 onClick={onToggle} 
@@ -146,12 +142,8 @@ const ChatToolbar: React.FC<ChatToolbarProps> = ({
             </>
           ) : (
             <div className="w-full flex justify-between items-center">
-              <div className="w-8 h-8 flex-shrink-0">
-                <img 
-                  src={logo}
-                  alt="SukoonVerse" 
-                  className="w-full h-full object-contain"
-                />
+              <div className="flex-shrink-0">
+                <Logo size={30} />
               </div>
               <button 
                 onClick={onToggle} 

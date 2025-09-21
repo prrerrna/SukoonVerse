@@ -5,11 +5,9 @@ import Chat from './pages/Chat';
 import Mood from './pages/Mood';
 import Resources from './pages/Resources';
 import Share from './pages/Share';
-import Notes from './pages/Notes';
 import Pulse from './pages/Pulse';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
-import Profile from './pages/Profile';
 
 // This is the root App component.
 // It uses React Router to define the different pages of the application.
@@ -22,13 +20,11 @@ const App = () => {
           <Route path="/" element={<Onboard />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:sessionId" element={<Chat />} />
-          <Route path="/notes" element={<Notes />} />
           <Route path="/mood" element={<Mood />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/share" element={<Share />} />
           <Route path="/pulse" element={<Pulse />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>

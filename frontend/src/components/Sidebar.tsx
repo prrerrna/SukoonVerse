@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Home, MessageCircle, Zap, BookOpen, User, Settings, Users } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Logo from './Logo';
-import logo from '../images/logo.png';
 import { firebaseAuth } from '../lib/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -57,17 +56,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Top Section */}
       <div>
         {/* Logo + Toggle Button */}
-<<<<<<< HEAD
         <div className="flex items-center justify-between p-4 border-b border-white/10 backdrop-blur-sm">
           {isOpen ? (
             <>
               <div className="flex items-center">
-                <img 
-                  src={logo}
-                  alt="SukoonVerse" 
-                  className="h-10 w-10 mr-2 transition-transform duration-300 hover:scale-110"
-                />
-                <span className="font-medium">SukoonVerse</span>
+                <Logo size={40} />
+                <span className="font-medium ml-2">SukoonVerse</span>
               </div>
               <button 
                 onClick={onToggle} 
@@ -79,12 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             </>
           ) : (
             <div className="w-full flex justify-between items-center">
-              <div className="w-10 h-10 flex-shrink-0">
-                <img 
-                  src={logo}
-                  alt="SukoonVerse" 
-                  className="w-full h-full object-contain transition-all duration-300 hover:scale-110"
-                />
+              <div className="flex-shrink-0">
+                <Logo size={36} />
               </div>
               <button 
                 onClick={onToggle} 
@@ -95,21 +85,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               </button>
             </div>
           )}
-=======
-        <div id="logo" className="flex items-center p-4">
-          <div className="flex flex-col items-center justify-center" style={{ minWidth: 56 }}>
-            <div className="flex items-center justify-center" style={{ minWidth: 56, minHeight: 56 }}>
-              <Logo size={56} />
-            </div>
-            {isOpen && (
-              <span className="text-lg font-bold text-white mt-2 transition-opacity duration-300">SukoonVerse</span>
-            )}
-          </div>
-          <div className="flex-1" />
-          <button onClick={onToggle} className="p-1 rounded-full transition-colors hover:bg-accentDark/80 ml-2">
-            {isOpen ? <ChevronLeft size={24} className="text-white" /> : <ChevronRight size={24} className="text-white" />}
-          </button>
->>>>>>> d95ed9eb713345db47a33bd3f62d0359d9565b8f
         </div>
 
         {/* Nav Links */}
@@ -156,13 +131,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           />
           
           <NavItem 
-            to="/notes" 
+            to="/share" 
             icon={<BookOpen size={22} />} 
-            text="Tell me" 
+            text="Share" 
             isOpen={isOpen} 
-            isActive={location.pathname === '/notes'}
+            isActive={location.pathname === '/share'}
             setHoveredItem={setHoveredItem}
-            tooltip="Your Notes"
+            tooltip="Share Thoughts"
           />
         </nav>
       </div>
@@ -170,13 +145,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Bottom Section */}
       <div className="p-4 border-t border-white/10 backdrop-blur-sm select-none">
         <NavItem 
-          to={currentUser ? "/profile" : "/login"}
+          to="/login"
           icon={<User size={22} />} 
-          text={currentUser ? (currentUser.displayName || currentUser.email?.split('@')[0] || "Profile") : "Login"} 
+          text={currentUser ? (currentUser.displayName || currentUser.email?.split('@')[0] || "Account") : "Login"} 
           isOpen={isOpen} 
-          isActive={location.pathname === '/login' || location.pathname === '/profile'}
+          isActive={location.pathname === '/login'}
           setHoveredItem={setHoveredItem}
-          tooltip={currentUser ? "Profile" : "Login"}
+          tooltip={currentUser ? "Account" : "Login"}
         />
         
         <NavItem 

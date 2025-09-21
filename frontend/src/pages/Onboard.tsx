@@ -12,9 +12,6 @@ const Onboard = () => {
   const toolsRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   
-<<<<<<< HEAD
-=======
-  
   // Music toggle logic
   const [musicOn, setMusicOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -30,8 +27,6 @@ const Onboard = () => {
       }
     }
   }, [musicOn]);
-
->>>>>>> d95ed9eb713345db47a33bd3f62d0359d9565b8f
   // Handle chat button click
   const handleChatClick = () => {
     navigate('/chat');
@@ -175,7 +170,7 @@ const Onboard = () => {
                 </div>
                 <h3 className="text-2xl font-semibold mb-3 text-main">Share with Me</h3>
                 <p className="text-subtle mb-4">Write down your thoughts, feelings, or frustrations in a safe private space. Our AI companion listens without judgment and offers support.</p>
-                <Link to="/notes" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
+                <Link to="/share" className="text-accentDark font-medium hover:text-accentDark/80 inline-flex items-center">
                   <span className="text-main">Try it now</span>
                   <ChevronRight size={18} className="ml-1" />
                 </Link>

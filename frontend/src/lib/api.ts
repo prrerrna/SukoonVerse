@@ -224,12 +224,17 @@ export async function authenticatedRequest(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('API error response:', {
+        status: response.status,
+        endpoint,
+        errorData
+      });
       throw new Error(errorData.error || `API error: ${response.status}`);
     }
 
     return response;
   } catch (error) {
-    console.error('Authentication request failed:', error);
+    console.error('Authentication request failed:', error, { endpoint });
     throw error;
   }
 }
@@ -248,6 +253,7 @@ export async function getUserProfile() {
 export async function updateUserProfile(profile: {
   name?: string;
   mobile?: string;
+  dob?: string;
   preferredName?: string;
   region?: string;
   language?: string;

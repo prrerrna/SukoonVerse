@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
-import { signIn as fbSignIn, signUp as fbSignUp, onAuthChange, FirebaseUser, signInWithGoogle, signOut } from '../lib/firebase';
+import { LogOut, User as LucideUser } from 'lucide-react';
+import { signIn as fbSignIn, signUp as fbSignUp, onAuthChange, signInWithGoogle, signOut } from '../lib/firebase';
 import { registerUser, getUserProfile, updateUserProfile } from '../lib/api';
 import Navbar from '../components/Navbar';
+
+// Define a user type that includes the properties we need
+type AppUser = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+};
 
 /**
  * LoginPage component provides user authentication with a clean, simple interface
@@ -20,7 +27,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [modal, setModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [error, setError] = useState('');
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showAlreadyLoggedIn, setShowAlreadyLoggedIn] = useState(false);
   
@@ -32,6 +39,7 @@ const LoginPage = () => {
   const [editForm, setEditForm] = useState({
     name: '',
     mobile: '',
+    dob: '',
     region: '',
     language: 'en',
     bio: '',
@@ -41,11 +49,17 @@ const LoginPage = () => {
   // Monitor authentication state
   useEffect(() => {
     const unsubscribe = onAuthChange((currentUser) => {
-      setUser(currentUser);
-      
-      // If user is already logged in and just navigated to this page,
-      // show a top-right notification that they're already logged in
+      // Convert Firebase User to our AuthUser type
       if (currentUser) {
+        const authUser: AppUser = {
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          uid: currentUser.uid
+        };
+        setUser(authUser);
+        
+        // If user is already logged in and just navigated to this page,
+        // show a top-right notification that they're already logged in
         setShowAlreadyLoggedIn(true);
         
         // Auto-hide the notification after 2.5s
@@ -56,6 +70,7 @@ const LoginPage = () => {
         // Fetch profile data
         loadProfile();
       } else {
+        setUser(null);
         setProfile(null);
       }
     });
@@ -66,16 +81,56 @@ const LoginPage = () => {
   const loadProfile = async () => {
     setProfileLoading(true);
     try {
-      const response = await getUserProfile();
-      setProfile(response.profile);
-      setEditForm({
-        name: response.profile?.name || '',
-        mobile: response.profile?.mobile || '',
-        region: response.profile?.region || '',
-        language: response.profile?.language || 'en',
-        bio: response.profile?.bio || '',
-        preferredName: response.profile?.preferredName || ''
-      });
+      console.log('Loading user profile...');
+      // Use email from Firebase user as fallback if profile API fails
+      if (user) {
+        const defaultProfile = {
+          name: (user as AppUser).displayName || (user as AppUser).email?.split('@')[0] || '',
+          email: (user as AppUser).email || '',
+          mobile: '',
+          dob: '',
+          region: '',
+          language: 'en',
+          bio: '',
+          preferredName: ''
+        };
+        
+        try {
+          const response = await getUserProfile();
+          setProfile(response.profile || defaultProfile);
+          setEditForm({
+            name: response.profile?.name || defaultProfile.name,
+            mobile: response.profile?.mobile || '',
+            dob: response.profile?.dob || '',
+            region: response.profile?.region || '',
+            language: response.profile?.language || 'en',
+            bio: response.profile?.bio || '',
+            preferredName: response.profile?.preferredName || ''
+          });
+        } catch (err: any) {
+          // If API fails with 404, it means the user is new and has no profile
+          console.log('Profile API error:', err);
+          
+          if (err.message && err.message.includes('404')) {
+            // New user detected - show profile setup modal
+            setShowProfileSetupModal(true);
+            console.log('New user detected, showing profile setup modal');
+          }
+          
+          // Use default profile from Firebase user
+          console.log('Using default profile from Firebase user');
+          setProfile(defaultProfile);
+          setEditForm({
+            name: defaultProfile.name,
+            mobile: '',
+            dob: '',
+            region: '',
+            language: 'en',
+            bio: '',
+            preferredName: ''
+          });
+        }
+      }
     } catch (error) {
       console.error('Failed to load profile:', error);
     } finally {
@@ -88,18 +143,53 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await updateUserProfile({
-        name: editForm.name,
-        mobile: editForm.mobile,
-        region: editForm.region,
-        language: editForm.language,
-        bio: editForm.bio,
-        preferredName: editForm.preferredName
-      });
-      await loadProfile(); // Reload profile data
-      setShowEditModal(false);
-      setShowProfileSetupModal(false);
-      setModal({ type: 'success', message: 'Profile updated successfully!' });
+      try {
+        // Validate required fields
+        if (!editForm.name || !editForm.mobile || !editForm.dob) {
+          setError('Name, Mobile Number, and Date of Birth are required fields');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Updating user profile with data:', editForm);
+        
+        const response = await updateUserProfile({
+          name: editForm.name,
+          mobile: editForm.mobile,
+          dob: editForm.dob,
+          region: editForm.region,
+          language: editForm.language,
+          bio: editForm.bio,
+          preferredName: editForm.preferredName
+        });
+        
+        console.log('Profile update API response:', response);
+        
+        // Update local profile with the returned data to ensure consistency
+        if (response && response.profile) {
+          setProfile(response.profile);
+        }
+      } catch (err) {
+        console.error('Profile update error:', err);
+        setError('Failed to update profile. Please try again.');
+        setLoading(false);
+        return; // Don't continue if there was an error
+      }
+      try {
+        await loadProfile(); // Reload profile data
+        setShowEditModal(false);
+        setShowProfileSetupModal(false);
+        setModal({ type: 'success', message: 'Profile updated successfully!' });
+      } catch (loadErr) {
+        console.error('Error reloading profile after update:', loadErr);
+        // Still close the modal but show a warning
+        setShowEditModal(false);
+        setShowProfileSetupModal(false);
+        setModal({ 
+          type: 'success', 
+          message: 'Profile updated but there was an issue refreshing the data. Please reload the page.'
+        });
+      }
     } catch (error: any) {
       setModal({ type: 'error', message: error.message || 'Failed to update profile' });
     } finally {
@@ -107,7 +197,7 @@ const LoginPage = () => {
     }
   };
 
-  const onAuthSuccess = (_user?: FirebaseUser) => {
+  const onAuthSuccess = (_user?: AppUser) => {
     // Show the centered success popup on the Login page
     setShowSuccessPopup(true);
     
@@ -241,7 +331,7 @@ const LoginPage = () => {
             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left mb-8">
               <div className="relative mb-6 md:mb-0 md:mr-10">
                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 text-white flex items-center justify-center text-3xl font-bold border-4 border-emerald-200">
-                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  {user ? ((user as AppUser).email ? (user as AppUser).email!.charAt(0).toUpperCase() : 'U') : 'U'}
                 </div>
                 <button className="absolute bottom-0 right-0 bg-emerald-500 text-white p-2 rounded-full hover:bg-emerald-600 transition-colors shadow-lg">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -295,6 +385,21 @@ const LoginPage = () => {
                     <div>
                       <p className="text-sm text-subtle">Mobile Number</p>
                       <p className="font-medium text-main">{profile?.mobile || 'Not specified'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-4">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-600">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-subtle">Date of Birth</p>
+                      <p className="font-medium text-main">{profile?.dob || 'Not specified'}</p>
                     </div>
                   </div>
 
@@ -357,24 +462,37 @@ const LoginPage = () => {
               <h3 className="text-lg font-semibold mb-4">Edit Profile</h3>
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name*</label>
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     placeholder="Enter your full name"
+                    required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number*</label>
                   <input
                     type="tel"
                     value={editForm.mobile}
                     onChange={(e) => setEditForm({...editForm, mobile: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     placeholder="e.g. +91 98765 43210"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth*</label>
+                  <input
+                    type="date"
+                    value={editForm.dob}
+                    onChange={(e) => setEditForm({...editForm, dob: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    required
                   />
                 </div>
                 
@@ -487,20 +605,110 @@ const LoginPage = () => {
       )}
 
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 border border-border/30">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center text-xl font-bold">S</div>
-            <div>
-              <h2 className="text-2xl font-medium text-main">Welcome to Sukoon</h2>
-              <p className="text-subtle">Sign in to access your personal wellness journey</p>
+        {/* Show different UI based on authentication state */}
+        {user ? (
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-10 border border-border/30">
+            {/* Profile Header */}
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left mb-8">
+              <div className="relative mb-6 md:mb-0 md:mr-10">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 text-white flex items-center justify-center text-3xl font-bold border-4 border-emerald-200">
+                  {user ? (
+                    (user as AppUser).displayName
+                      ? (user as AppUser).displayName!.charAt(0) 
+                      : (user as AppUser).email
+                        ? (user as AppUser).email!.charAt(0).toUpperCase() 
+                        : 'U'
+                  ) : 'U'}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-main mb-1">
+                  {profile?.name || (user ? (user as AppUser).displayName : 'Welcome Back!')}
+                </h1>
+                <p className="text-subtle text-lg mb-4">{user ? (user as AppUser).email || '' : ''}</p>
+                <p className="text-main max-w-prose">
+                  {profile?.bio || 'Manage your account settings and profile information here.'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Profile Information Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 mb-8">
+              <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                  <LucideUser size={18} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-subtle">Mobile</p>
+                  <p className="font-medium text-main">{profile?.mobile || 'Not provided'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-subtle">Date of Birth</p>
+                  <p className="font-medium text-main">{profile?.dob || 'Not provided'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-subtle">Location</p>
+                  <p className="font-medium text-main">{profile?.region || 'Not specified'}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+              <button 
+                onClick={() => setShowEditModal(true)}
+                className="w-full sm:w-auto flex items-center justify-center bg-emerald-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-emerald-600 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit Profile
+              </button>
+              <button 
+                onClick={() => signOut()}
+                className="w-full sm:w-auto flex items-center justify-center bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                <LogOut size={16} className="mr-2" />
+                Sign Out
+              </button>
             </div>
           </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
+        ) : (
+          <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 border border-border/30">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center text-xl font-bold">S</div>
+              <div>
+                <h2 className="text-2xl font-medium text-main">Welcome to Sukoon</h2>
+                <p className="text-subtle">Sign in to access your personal wellness journey</p>
+              </div>
             </div>
-          )}
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -603,6 +811,7 @@ const LoginPage = () => {
             By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
+        )}
       </div>
       
       {/* Profile Setup Modal */}
@@ -627,6 +836,33 @@ const LoginPage = () => {
                   onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                   className="w-full p-2 border rounded-lg"
                   placeholder="Full name"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="mobile" className="block text-sm font-medium text-main mb-1">Mobile Number*</label>
+                <input
+                  id="mobile"
+                  name="mobile"
+                  type="tel"
+                  value={editForm.mobile}
+                  onChange={(e) => setEditForm({...editForm, mobile: e.target.value})}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="e.g. +91 98765 43210"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="dob" className="block text-sm font-medium text-main mb-1">Date of Birth*</label>
+                <input
+                  id="dob"
+                  name="dob"
+                  type="date"
+                  value={editForm.dob}
+                  onChange={(e) => setEditForm({...editForm, dob: e.target.value})}
+                  className="w-full p-2 border rounded-lg"
                   required
                 />
               </div>
