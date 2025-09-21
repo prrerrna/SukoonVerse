@@ -5,7 +5,9 @@ import ChatToolbar from '../components/ChatToolbar';
 import { 
   createNewChat, 
   sendRemoteMessage, 
-  getRemoteMessages
+  getRemoteMessages,
+  getServerSession,
+  sendMessage
 } from '../lib/api';
 import { 
   createChatSession, 
@@ -143,7 +145,7 @@ const Chat: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     
     try {
-      if (user) {
+  if (user) {
         // Authenticated flow
         if (!sessionId) {
           // First message in a new conversation
@@ -215,7 +217,7 @@ const Chat: React.FC = () => {
           }
         }
       } else {
-        // Guest flow using IndexedDB
+        // Guest flow using IndexedDB + backend /api/chat for real AI reply
         if (!sessionId) {
           // Create a new local session
           const newSession = await createChatSession('New Chat');
@@ -231,30 +233,33 @@ const Chat: React.FC = () => {
           // Navigate to the new session
           navigate(`/chat/${newSession.id}`, { replace: true });
           setActiveChatId(newSession.id);
-          
-          // Simulate a response for the guest user
-          setTimeout(() => {
+          try {
+            const { session_id } = await getServerSession();
+            const apiRes = await sendMessage({
+              session_id,
+              message,
+              lang_hint: 'en',
+              chat_id: newSession.id,
+            } as any);
+            const replyText = apiRes.reply || apiRes.text || '...';
             const botMessage: Message = {
               id: `model_${Date.now()}`,
               role: 'model',
-              content: "Hello! I'm Sukoon AI. How can I help you today?",
+              content: replyText,
               timestamp: Date.now(),
               animate: true
             };
-            
             setMessages(prev => [...prev, botMessage]);
-            
-            // Add bot message to local storage
-            addChatMessage({
+            await addChatMessage({
               sessionId: newSession.id,
               author: 'bot',
               text: botMessage.content,
               timestamp: botMessage.timestamp
             });
-            
-            // Refresh the sidebar
             setRefreshTrigger(prev => prev + 1);
-          }, 1000);
+          } catch (err) {
+            console.error('Guest API chat failed:', err);
+          }
         } else {
           // Add user message to local storage
           await addChatMessage({
@@ -263,27 +268,32 @@ const Chat: React.FC = () => {
             text: message,
             timestamp: Date.now()
           });
-          
-          // Simulate a response for the guest user
-          setTimeout(() => {
+          try {
+            const { session_id } = await getServerSession();
+            const apiRes = await sendMessage({
+              session_id,
+              message,
+              lang_hint: 'en',
+              chat_id: sessionId,
+            } as any);
+            const replyText = apiRes.reply || apiRes.text || '...';
             const botMessage: Message = {
               id: `model_${Date.now()}`,
               role: 'model',
-              content: "I'm responding as a guest session. To get full AI responses, please log in.",
+              content: replyText,
               timestamp: Date.now(),
               animate: true
             };
-            
             setMessages(prev => [...prev, botMessage]);
-            
-            // Add bot message to local storage
-            addChatMessage({
+            await addChatMessage({
               sessionId,
               author: 'bot',
               text: botMessage.content,
               timestamp: botMessage.timestamp
             });
-          }, 1000);
+          } catch (err) {
+            console.error('Guest API chat failed:', err);
+          }
         }
       }
     } catch (error) {
