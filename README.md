@@ -166,11 +166,11 @@ Use a single Cloud Run service that serves the Flask API and the prebuilt SPA.
 	- Ingress: Allow all (or internal + authorized if needed).
 	- Authentication: Allow unauthenticated (frontend SPA + public APIs) or require auth as needed.
 
-4) Set environment variables
-- `GEMINI_API_KEY` (if using Gemini).
-- `SAKHI_MOOD_NORMALIZE` (optional: `true`/`false`).
-- `ALLOWED_ORIGINS` (comma-separated prod origins, e.g., `https://your-domain`).
-- `FLASK_SECRET_KEY` (random string).
+4) Set runtime environment variables (Container → Variables & Secrets)
+- `GEMINI_API_KEY` (use Secret Manager; required for Gemini replies)
+- `FLASK_SECRET_KEY` (random string; or Secret Manager)
+- `SAKHI_MOOD_NORMALIZE` (optional: `true`/`false`)
+- `ALLOWED_ORIGINS` (comma-separated prod origins; include your Cloud Run URL)
 
 5) Configure Firebase Admin credentials
 - Preferred: Grant Cloud Run service account the Firebase/Firestore roles; rely on ADC (`Application Default Credentials`). No file needed.
@@ -179,9 +179,16 @@ Use a single Cloud Run service that serves the Flask API and the prebuilt SPA.
 	- In Cloud Run → Service → Volumes: Add Secret volume `firebase-sa` → mount path `/var/secrets/firebase`.
 	- Add env var `GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/firebase/FIREBASE_SA`.
 
+5) Provide Firebase Web SDK config to the frontend (Fixes “Auth not configured”)
+- Option A (recommended): Configure build-time variables for Vite in the Cloud Run build settings (Source deployment)
+	- Add build args for the Dockerfile: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_MEASUREMENT_ID`
+- Option B: Commit a production env file
+	- Copy `frontend/.env.example` to `frontend/.env.production`, fill values, and commit. The Docker build will pick them up automatically.
+
 6) Deploy
 - Click Create. First build may take a few minutes.
 - After deploy, open the service URL and verify the SPA and `/api/*` endpoints.
+- Health check: GET `/api/health` should return `{ "status": "ok" }`.
 
 7) CI/CD trigger (optional)
 - Cloud Run creates a Cloud Build trigger on the selected branch. Pushes to `main` will auto-deploy.
@@ -190,3 +197,4 @@ Troubleshooting
 - 404s on client routes: ensure SPA fallback in backend is active (already configured).
 - CORS errors: set `ALLOWED_ORIGINS` to your Cloud Run URL and custom domain.
 - 401 on auth endpoints: ensure Firebase Web SDK uses the correct web keys, and Cloud Run has Firebase Admin permissions.
+- “Auth not configured” in UI: your Vite Firebase envs were not available at build time. Use step 5.
