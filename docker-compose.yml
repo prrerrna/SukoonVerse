@@ -21,3 +21,5 @@ services:
       - /app/node_modules
     depends_on:
       - backend
+    environment:
+      - VITE_DEV_API_URL=http://localhost:8080

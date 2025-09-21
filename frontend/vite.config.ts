@@ -12,7 +12,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to the backend server during development
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_DEV_API_URL || 'http://localhost:8080',
         changeOrigin: true,
       },
     },
