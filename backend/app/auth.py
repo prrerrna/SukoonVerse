@@ -69,9 +69,20 @@ def verify_token(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Dev bypass
+        if SKIP_AUTH:
+            decoded_token = {
+                'uid': os.environ.get('DEV_USER_ID', 'dev-user-1'),
+                'email': os.environ.get('DEV_USER_EMAIL', 'dev@example.com'),
+                'name': os.environ.get('DEV_USER_NAME', 'Dev User'),
+            }
+            return f(decoded_token, *args, **kwargs)
+
         token = None
         if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(' ')[1]
+            parts = request.headers['Authorization'].split(' ')
+            if len(parts) == 2 and parts[0] == 'Bearer':
+                token = parts[1]
 
         if not token:
             return jsonify({'message': 'Token is missing!'}), 401

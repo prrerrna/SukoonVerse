@@ -15,6 +15,7 @@ from app.db import get_db
 user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/register', methods=['POST'])
+@user_bp.route('/user/register', methods=['POST'])
 @verify_token
 def register_user(decoded_token):
     """
@@ -77,6 +78,7 @@ def register_user(decoded_token):
     })
 
 @user_bp.route('/profile', methods=['GET'])
+@user_bp.route('/user/profile', methods=['GET'])
 @verify_token
 def get_profile(decoded_token):
     """
@@ -105,6 +107,7 @@ def get_profile(decoded_token):
     })
 
 @user_bp.route('/profile', methods=['POST'])
+@user_bp.route('/user/profile', methods=['POST'])
 @verify_token
 def update_profile(decoded_token):
     """
